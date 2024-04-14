@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>$title$</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.title {
+    text-align: center;
+    font-size: 18pt;
+    padding: 8px;
+}
+
+.table, .quote_content {
+    background: rgb(26, 28, 28);
+}
+
+.table, .quote, .quote_content {
+    border-radius: 8px;
+}
+
+.table {
+    border-spacing: 1; 
+    border-collapse: collapse; 
+    overflow: hidden;
+    max-width: 600px; 
+    width: 100%;
+    margin: 0 auto;
+    position: relative;
+}
+
+.sender {
+    color: rgb(64, 196, 255);
+}
+
+.datetime, .number, .content, .quote_content {
+    color: rgb(197, 232, 240);
+}
+
+.heading {
+    background: rgb(43, 76, 83);
+    padding: 8px;
+    font-size: 14pt;
+}
+
+.number {
+    float: right;
+    position: relative;
+    right: 8px;
+}
+
+.quote {
+    background: rgb(69, 90, 100);
+    margin: 8px;
+    padding: 3px 1px 3px 5px;
+    width: fit-content;
+}
+
+.quote_content {
+    margin-left: 2px;
+    padding: 2px 6px 2px 6px;
+}
+
+.content, .reply {
+    margin: 8px;
+}
+
+.divider {
+    width: 90%;
+    margin-left: 5%;
+    border: 0;
+    border-top: 1px solid rgba(64, 64, 64, 0.5);
+}
+    </style>
+</head>
+<body>
+    <h2 class="title">$title$</h2>
+    <div class="table">
+        <h2 class="heading">
+        <span class="sender">$sender$</span>
+        <span class="datetime">$datetime$</span>
+        <span class="number">$number$</span>
+        </h2>
+        <div class="quote">
+            <span class="sender">$quote_sender$</span>
+            <span class="quote_content">$quote_content$</span>
+        </div>
+        <div class="content">
+            <p>$content$</p>
+        </div>
+        <hr class="divider">
+        <div class="reply">
+            <span class="sender">$reply_sender$</span>
+            <span class="content">$reply_content$</span>
+        </div>
+    </div>
+</body>
+</html>

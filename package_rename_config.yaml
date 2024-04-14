@@ -1,0 +1,30 @@
+package_rename_config:
+  android:
+    app_name: NGroup
+    package_name: app.kinwai.ngroup
+
+  ios:
+    app_name: NGroup
+    bundle_name: NGroup
+    override_old_package: 
+    package_name: app.kinwai.ngroup
+
+  linux:
+    app_name: NGroup
+    package_name: app.kinwai.ngroup
+    exe_name: NGroup
+
+  macos:
+    app_name: NGroup
+    package_name: app.kinwai.ngroup
+    copyright_notice: 
+
+  web:
+    app_name: NGroup
+    description: 
+
+  windows:
+    app_name: NGroup
+    organization: app.kinwai.ngroup
+    copyright_notice: 
+    exe_name: ngroup

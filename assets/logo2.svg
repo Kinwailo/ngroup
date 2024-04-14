@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" xmlns:bx="https://boxy-svg.com">
+  <g transform="matrix(1, 0.000001, 0.000001, 0.999992, 49.999882, 0.002858)" style="" bx:origin="0.5 0.249997">
+    <path style="stroke-width: 0px; fill: rgb(17, 210, 175);" d="M 300 100 C 300 100 400 99.998 400 100 C 400 99.998 300 400 300 400 C 300 400 200 400 200 400 L 300 100 Z" transform="matrix(1, 0, 0, 1, -0.000001, 0)"/>
+    <path style="fill: rgb(38, 154, 123); stroke-width: 0px;" d="M 200 100 L 300 400 C 300 400 200 400 200 400 C 200 400 100 100 100 100 L 200 100 Z"/>
+    <path style="fill: rgb(58, 197, 144); stroke-width: 0px;" d="M 100 100 L 0 400 L 100 400 L 200 100 L 100 100 Z"/>
+    <path style="stroke-width: 0px; fill: rgb(69, 197, 163);" d="M 250 249.999 L 300 400 L 200 400 L 250 249.999 Z"/>
+  </g>
+</svg>
