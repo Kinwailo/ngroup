@@ -16,8 +16,9 @@ dependencies:
   synchronized: ^3.1.0+1
   window_manager: ^0.3.8
   enough_mail:
-    git: https://github.com/Kinwailo/enough_mail
-  intl: ^0.17.0
+    git:
+      url: https://github.com/Kinwailo/enough_mail.git
+      ref: main
   adaptive_dialog: ^2.0.0
   flex_color_scheme: ^7.3.1
   split_view: ^3.2.1
