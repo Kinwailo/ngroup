@@ -355,9 +355,10 @@ class PostBody extends ConsumerWidget {
     var body = data.body;
     var state = data.state;
     var filters = ref.read(filterProvider);
+    var quote = ref.read(postsLoader).getQuoteData(data);
 
     var quoteBody = [
-      if (state.showQuote && data.parent != null) PostQuote(data.parent!),
+      if (quote != null) PostQuote(quote),
       if (body != null && body.text.isNotEmpty) PostBodyText(data, false),
     ];
 

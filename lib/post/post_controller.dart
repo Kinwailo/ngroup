@@ -217,6 +217,27 @@ class PostsLoader {
         .toList();
   }
 
+  PostData? getPrevious(PostData data) {
+    if (data.index >= _posts.length) return null;
+    var filters = ref.read(filterProvider);
+    var i = data.index - 1;
+    while (i >= 0) {
+      data = _posts[i];
+      if (filters.filterPost(data) && !data.state.inside) return data;
+      i--;
+    }
+    return null;
+  }
+
+  PostData? getQuoteData(PostData data) {
+    var previous = getPrevious(data);
+    return switch (Settings.showQuote.val) {
+      ShowQuote.always => data.parent,
+      ShowQuote.never => null,
+      _ => previous == data.parent ? null : data.parent,
+    };
+  }
+
   void select(PostData? data) {
     var selected = ref.read(selectedPostProvider);
     var postId = data?.post.messageId ?? '';
@@ -315,7 +336,6 @@ class PostsLoader {
       }
     }
 
-    PostData? previous;
     for (var data in posts) {
       await _loadBody(data, cancel);
       if (!data.state.inside) _getLinkPreview(data, cancel);
@@ -325,14 +345,6 @@ class PostsLoader {
         await _loadBody(child, cancel);
         if (cancel.value) return;
       }
-
-      if (previous != null) {
-        data.state.showQuote = Settings.showQuote.val == ShowQuote.always;
-        if (Settings.showQuote.val == ShowQuote.smart) {
-          data.state.showQuote = data.parent != previous;
-        }
-      }
-      if (!data.state.inside) previous = data;
     }
   }
 
