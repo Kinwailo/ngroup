@@ -14,6 +14,8 @@ enum ShowQuote { always, smart, never }
 
 enum NextThread { next, nextWithUnread, nextWithNew }
 
+enum SortMode { hierarchy, order }
+
 class Settings {
   static final _storage = _SettingsStorage();
 
@@ -126,6 +128,15 @@ class Settings {
     _storage,
     description: 'Custom pattern',
     prompt: 'Enter the regex pattern',
+  );
+
+  static var sortMode = PrefsEnum(
+    'sortMode',
+    SortMode.hierarchy,
+    SortMode.values,
+    _storage,
+    description: 'Sort mode',
+    prompt: 'Select preferred option',
   );
 
   static var showQuote = PrefsEnum(

@@ -176,20 +176,32 @@ class PostsLoader {
           if (map.containsKey(r)) {
             map[r]!.children
               ..add(d)
-              ..sort(((a, b) => a.post.number.compareTo(b.post.number)));
+              ..sort((a, b) => a.post.number.compareTo(b.post.number));
             d.parent = map[r]!;
             break;
           }
         }
       }
 
-      var root = map.values.firstWhereOrNull((d) => d.post.references.isEmpty);
-      if (root != null) {
-        ref.read(titleProvider.notifier).state = root.post.subject;
-        _traverseTree(root, (d) => _posts.add(d..index = _posts.length));
-      } else {
-        _posts.addAll(postList.map((p) => _createData(p, options)));
+      if (Settings.sortMode.val == SortMode.order) {
+        _posts.addAll(map.values
+            .sorted((a, b) => a.post.number.compareTo(b.post.number))
+            .mapIndexed((i, p) => p..index = i));
       }
+
+      if (Settings.sortMode.val == SortMode.hierarchy) {
+        var root =
+            map.values.firstWhereOrNull((d) => d.post.references.isEmpty);
+        if (root != null) {
+          _traverseTree(root, (d) => _posts.add(d..index = _posts.length));
+        } else {
+          _posts.addAll(postList
+              .mapIndexed((i, p) => _createData(p, options)..index = i));
+        }
+      }
+
+      ref.read(titleProvider.notifier).state =
+          _posts.firstOrNull?.post.subject ?? '';
     }
     progress.value = 0;
     unread.value = _posts.whereNot((p) => p.post.isRead).length;
