@@ -182,7 +182,7 @@ class HomeActionButton extends HookConsumerWidget {
     var nextCount = ref.read(threadsLoader).getNextCount();
     var nextThread = Settings.threadOnNext.val && loader.unread.value == 0;
     ref.watch(threadsProvider);
-    ref.watch(selectedThreadProvider);
+    var threadId = ref.watch(selectedThreadProvider);
     var groupId = ref.watch(selectedGroupProvider);
 
     useListenable(loader.unread);
@@ -271,7 +271,9 @@ class HomeActionButton extends HookConsumerWidget {
                     await controller.send(context);
                     nav.goto(nav.tag == NavigatorController.left
                         ? ThreadView.path
-                        : PostView.path);
+                        : threadId == ''
+                            ? OptionsView.path
+                            : PostView.path);
                   },
             child: const Icon(Icons.send),
           ),
