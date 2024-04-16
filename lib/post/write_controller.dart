@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:enough_mail/smtp.dart';
+import 'package:enough_mail/enough_mail.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -146,24 +146,24 @@ class WriteController {
       content += '\n\n--\n${signature.text}';
     }
     if (enableQuote.value && quote.text != '') {
-      content += '\n\n${quote.text}';
+      content +=
+          '\n\n${data.value?.post.from ?? 'Someone'} wrote: \n${quote.text}';
     }
     if (files.value.isNotEmpty) content += '\n';
 
     try {
-      var builder = MessageBuilder()
+      var builder = MessageBuilder(
+          subjectEncoding: HeaderEncoding.B,
+          transferEncoding: TransferEncoding.eightBit)
         ..from = [MailAddress(name.text, email.text)]
         ..addHeader('Newsgroups', group.name)
         ..addHeader('References', references.join(' '))
         ..addHeader('User-Agent', 'NGroup')
         ..subject = subject.text
-        ..text = content
-        ..setRecommendedTextEncoding(
-          supports8BitMessages: true,
-        );
+        ..text = content;
       for (var e in files.value) {
         builder.addBinary(e.bytes!, MediaType.guessFromFileName(e.name),
-            filename: e.name);
+            filename: MailCodec.base64.encodeHeader(e.name));
       }
       var message = builder.buildMimeMessage();
       var data = message.renderMessage();
