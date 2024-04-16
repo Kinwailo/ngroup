@@ -57,6 +57,7 @@ class PostData {
   List<PostData> children = [];
   GroupOptions options;
   var index = -1;
+  String userAgent = '';
 }
 
 enum PostLoadState { waiting, loading, toOutside, loaded, error }
@@ -468,6 +469,10 @@ class PostsLoader {
         mime.decodeTextHtmlPart()?.stripHtmlTag ??
         '';
     text = text.replaceAll('\r\n', '\n');
+
+    data.userAgent = mime.decodeHeaderValue('User-Agent') ??
+        mime.decodeHeaderValue('X-Newsreader') ??
+        '';
 
     var images = <PostImage>[];
     var files = <PostFile>[];
