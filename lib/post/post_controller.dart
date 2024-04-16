@@ -384,6 +384,7 @@ class PostsLoader {
     if (data.children.isNotEmpty) return;
     if (!Settings.shortReply.val) return;
     data.state.inside = data.body!.images.isEmpty &&
+        data.body!.files.isEmpty &&
         (data.body!.text.length <= Settings.shortReplySize.val);
   }
 
