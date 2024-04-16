@@ -146,7 +146,8 @@ class CaptureContent extends HookConsumerWidget {
         child: SingleChildScrollView(
           controller: scrollController,
           child: Padding(
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+            padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top, bottom: 60),
             child: Screenshot(
               controller: ref.read(postsLoader).screenshot,
               child: AbsorbPointer(
@@ -187,7 +188,6 @@ class CaptureContent extends HookConsumerWidget {
                               ? const SizedBox.shrink()
                               : PostTile(posts[index]),
                         ),
-                        const SizedBox(height: 60),
                       ]),
                     ),
                   ],

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:badges/badges.dart' as badges;
-import 'package:ngroup/home/filter_controller.dart';
 
 import '../core/adaptive.dart';
 import '../core/theme.dart';
@@ -20,6 +19,7 @@ import '../post/write_controller.dart';
 import '../settings/settings.dart';
 import '../widgets/progress_dialog.dart';
 import '../widgets/selection_dialog.dart';
+import 'filter_controller.dart';
 import 'home_controller.dart';
 import 'slide_pane.dart';
 import 'two_pane.dart';
