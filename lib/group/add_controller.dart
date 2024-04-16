@@ -105,13 +105,10 @@ class StepNotifier extends Notifier<int> {
         if (!ref.read(selectionProvider).hasError) state++;
         break;
       case 2:
-        await ref.read(selectionProvider.notifier).addGroups();
+        var group = await ref.read(selectionProvider.notifier).addGroups();
+        ref.read(selectedGroupProvider.notifier).selectGroup(group?.id! ?? -1);
+        _close();
         state = 0;
-        if (ref.read(selectedGroupProvider) == -1) {
-          var groups = await Database.groupList();
-          ref.read(selectedGroupProvider.notifier).selectGroup(groups[0].id!);
-          _close();
-        }
       default:
     }
   }
@@ -169,12 +166,13 @@ class SelectionNotifier extends AsyncNotifier<Map<Map<String, dynamic>, bool>> {
     state = AsyncData(_selectionMap);
   }
 
-  Future<void> addGroups() async {
+  Future<Group?> addGroups() async {
     var list = state.requireValue.entries
         .where((e) => e.value)
         .map((e) => e.key['group'])
         .cast<Group>()
         .toList();
     await _nntp!.addGroups(list);
+    return list.firstOrNull;
   }
 }
