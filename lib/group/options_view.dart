@@ -52,27 +52,26 @@ class OptionsView extends ConsumerWidget {
                 children: [
                   ListTile(
                     title: const Text('Refresh silently'),
-                    onTap: () {
-                      ref.read(groupDataProvider.notifier).reload(
-                          ProgressDialog(context), SelectionDialog(context),
-                          silently: true);
-                    },
+                    onTap: () => ref.read(groupDataProvider.notifier).reload(
+                        ProgressDialog(context), SelectionDialog(context),
+                        silently: true),
+                  ),
+                  ListTile(
+                    title: const Text('Mark all as read'),
+                    onTap: () async =>
+                        ref.read(groupDataProvider.notifier).markAllRead(),
                   ),
                   ListTile(
                     title: const Text('Reset group'),
-                    onTap: () {
-                      ref
-                          .read(groupDataProvider.notifier)
-                          .resetGroup(ProgressDialog(context));
-                    },
+                    onTap: () => ref
+                        .read(groupDataProvider.notifier)
+                        .resetGroup(ProgressDialog(context)),
                   ),
                   ListTile(
                     title: const Text('Delete group'),
-                    onTap: () {
-                      ref
-                          .read(groupDataProvider.notifier)
-                          .deleteGroup(ProgressDialog(context));
-                    },
+                    onTap: () => ref
+                        .read(groupDataProvider.notifier)
+                        .deleteGroup(ProgressDialog(context)),
                   ),
                   ServerTile(d.server),
                 ],

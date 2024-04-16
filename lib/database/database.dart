@@ -199,14 +199,26 @@ class Database {
   static Future<void> resetAllNewThreads(int groupId) async {
     var threads = await _isar.threads
         .where()
-        .groupIdIsNewEqualTo(groupId, true)
-        .or()
         .groupIdEqualToNewCountGreaterThan(groupId, 0)
         .findAll();
     await _isar.writeTxn(() async {
       for (var thread in threads) {
         thread.isNew = false;
         thread.newCount = 0;
+        await _isar.threads.put(thread);
+      }
+    });
+  }
+
+  static Future<void> markAllThreadsRead(int groupId) async {
+    var threads = await _isar.threads
+        .where()
+        .groupIdEqualToUnreadCountGreaterThan(groupId, 0)
+        .findAll();
+    await _isar.writeTxn(() async {
+      for (var thread in threads) {
+        thread.isRead = true;
+        thread.unreadCount = 0;
         await _isar.threads.put(thread);
       }
     });
@@ -254,6 +266,19 @@ class Database {
     await _isar.writeTxn(() async {
       for (var post in posts) {
         post.isNew = false;
+        await _isar.posts.put(post);
+      }
+    });
+  }
+
+  static Future<void> markAllPostsRead(int groupId) async {
+    var posts = await _isar.posts
+        .where()
+        .groupIdIsReadEqualTo(groupId, false)
+        .findAll();
+    await _isar.writeTxn(() async {
+      for (var post in posts) {
+        post.isRead = true;
         await _isar.posts.put(post);
       }
     });

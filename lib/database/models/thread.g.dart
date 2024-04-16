@@ -117,24 +117,6 @@ const ThreadSchema = CollectionSchema(
         )
       ],
     ),
-    r'groupId_isNew': IndexSchema(
-      id: -1185731601260038836,
-      name: r'groupId_isNew',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'groupId',
-          type: IndexType.value,
-          caseSensitive: false,
-        ),
-        IndexPropertySchema(
-          name: r'isNew',
-          type: IndexType.value,
-          caseSensitive: false,
-        )
-      ],
-    ),
     r'groupId_newCount': IndexSchema(
       id: -512119667309507536,
       name: r'groupId_newCount',
@@ -148,6 +130,24 @@ const ThreadSchema = CollectionSchema(
         ),
         IndexPropertySchema(
           name: r'newCount',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'groupId_unreadCount': IndexSchema(
+      id: 8405943505768979738,
+      name: r'groupId_unreadCount',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'groupId',
+          type: IndexType.value,
+          caseSensitive: false,
+        ),
+        IndexPropertySchema(
+          name: r'unreadCount',
           type: IndexType.value,
           caseSensitive: false,
         )
@@ -314,18 +314,18 @@ extension ThreadQueryWhereSort on QueryBuilder<Thread, Thread, QWhere> {
     });
   }
 
-  QueryBuilder<Thread, Thread, QAfterWhere> anyGroupIdIsNew() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        const IndexWhereClause.any(indexName: r'groupId_isNew'),
-      );
-    });
-  }
-
   QueryBuilder<Thread, Thread, QAfterWhere> anyGroupIdNewCount() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'groupId_newCount'),
+      );
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhere> anyGroupIdUnreadCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'groupId_unreadCount'),
       );
     });
   }
@@ -581,141 +581,6 @@ extension ThreadQueryWhere on QueryBuilder<Thread, Thread, QWhereClause> {
     });
   }
 
-  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdEqualToAnyIsNew(
-      int groupId) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'groupId_isNew',
-        value: [groupId],
-      ));
-    });
-  }
-
-  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdNotEqualToAnyIsNew(
-      int groupId) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'groupId_isNew',
-              lower: [],
-              upper: [groupId],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'groupId_isNew',
-              lower: [groupId],
-              includeLower: false,
-              upper: [],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'groupId_isNew',
-              lower: [groupId],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'groupId_isNew',
-              lower: [],
-              upper: [groupId],
-              includeUpper: false,
-            ));
-      }
-    });
-  }
-
-  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdGreaterThanAnyIsNew(
-    int groupId, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'groupId_isNew',
-        lower: [groupId],
-        includeLower: include,
-        upper: [],
-      ));
-    });
-  }
-
-  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdLessThanAnyIsNew(
-    int groupId, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'groupId_isNew',
-        lower: [],
-        upper: [groupId],
-        includeUpper: include,
-      ));
-    });
-  }
-
-  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdBetweenAnyIsNew(
-    int lowerGroupId,
-    int upperGroupId, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'groupId_isNew',
-        lower: [lowerGroupId],
-        includeLower: includeLower,
-        upper: [upperGroupId],
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdIsNewEqualTo(
-      int groupId, bool isNew) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'groupId_isNew',
-        value: [groupId, isNew],
-      ));
-    });
-  }
-
-  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdEqualToIsNewNotEqualTo(
-      int groupId, bool isNew) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'groupId_isNew',
-              lower: [groupId],
-              upper: [groupId, isNew],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'groupId_isNew',
-              lower: [groupId, isNew],
-              includeLower: false,
-              upper: [groupId],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'groupId_isNew',
-              lower: [groupId, isNew],
-              includeLower: false,
-              upper: [groupId],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'groupId_isNew',
-              lower: [groupId],
-              upper: [groupId, isNew],
-              includeUpper: false,
-            ));
-      }
-    });
-  }
-
   QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdEqualToAnyNewCount(
       int groupId) {
     return QueryBuilder.apply(this, (query) {
@@ -896,6 +761,193 @@ extension ThreadQueryWhere on QueryBuilder<Thread, Thread, QWhereClause> {
         lower: [groupId, lowerNewCount],
         includeLower: includeLower,
         upper: [groupId, upperNewCount],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdEqualToAnyUnreadCount(
+      int groupId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'groupId_unreadCount',
+        value: [groupId],
+      ));
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause>
+      groupIdNotEqualToAnyUnreadCount(int groupId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_unreadCount',
+              lower: [],
+              upper: [groupId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_unreadCount',
+              lower: [groupId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_unreadCount',
+              lower: [groupId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_unreadCount',
+              lower: [],
+              upper: [groupId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause>
+      groupIdGreaterThanAnyUnreadCount(
+    int groupId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'groupId_unreadCount',
+        lower: [groupId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdLessThanAnyUnreadCount(
+    int groupId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'groupId_unreadCount',
+        lower: [],
+        upper: [groupId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdBetweenAnyUnreadCount(
+    int lowerGroupId,
+    int upperGroupId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'groupId_unreadCount',
+        lower: [lowerGroupId],
+        includeLower: includeLower,
+        upper: [upperGroupId],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause> groupIdUnreadCountEqualTo(
+      int groupId, int unreadCount) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'groupId_unreadCount',
+        value: [groupId, unreadCount],
+      ));
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause>
+      groupIdEqualToUnreadCountNotEqualTo(int groupId, int unreadCount) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_unreadCount',
+              lower: [groupId],
+              upper: [groupId, unreadCount],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_unreadCount',
+              lower: [groupId, unreadCount],
+              includeLower: false,
+              upper: [groupId],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_unreadCount',
+              lower: [groupId, unreadCount],
+              includeLower: false,
+              upper: [groupId],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_unreadCount',
+              lower: [groupId],
+              upper: [groupId, unreadCount],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause>
+      groupIdEqualToUnreadCountGreaterThan(
+    int groupId,
+    int unreadCount, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'groupId_unreadCount',
+        lower: [groupId, unreadCount],
+        includeLower: include,
+        upper: [groupId],
+      ));
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause>
+      groupIdEqualToUnreadCountLessThan(
+    int groupId,
+    int unreadCount, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'groupId_unreadCount',
+        lower: [groupId],
+        upper: [groupId, unreadCount],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Thread, Thread, QAfterWhereClause>
+      groupIdEqualToUnreadCountBetween(
+    int groupId,
+    int lowerUnreadCount,
+    int upperUnreadCount, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'groupId_unreadCount',
+        lower: [groupId, lowerUnreadCount],
+        includeLower: includeLower,
+        upper: [groupId, upperUnreadCount],
         includeUpper: includeUpper,
       ));
     });

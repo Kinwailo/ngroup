@@ -6,8 +6,8 @@ part 'thread.g.dart';
 class Thread {
   Id? id;
   @Index(composite: [CompositeIndex('number')])
-  @Index(composite: [CompositeIndex('isNew')])
   @Index(composite: [CompositeIndex('newCount')])
+  @Index(composite: [CompositeIndex('unreadCount')])
   late int groupId;
   late int number;
   @Index()

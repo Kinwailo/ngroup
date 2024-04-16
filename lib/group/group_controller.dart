@@ -80,6 +80,18 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
     pd.completed.value = true;
   }
 
+  Future<void> markAllRead() async {
+    var data = await future;
+    await Database.markAllThreadsRead(data.group.id!);
+    await Database.markAllPostsRead(data.group.id!);
+  }
+
+  Future<void> resetAllNew() async {
+    var data = await future;
+    await Database.resetAllNewPosts(data.group.id!);
+    await Database.resetAllNewThreads(data.group.id!);
+  }
+
   Future<void> deleteGroup(ProgressDialog pd) async {
     var data = await future;
 
@@ -158,10 +170,7 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
     pd.message.value = 'Downloading...';
     pd.show();
 
-    if (!silently) {
-      await Database.resetAllNewPosts(data.group.id!);
-      await Database.resetAllNewThreads(data.group.id!);
-    }
+    if (!silently) await resetAllNew();
     data.options.lastView.val = data.options.lastDownload.val;
 
     try {

@@ -120,6 +120,24 @@ const PostSchema = CollectionSchema(
         )
       ],
     ),
+    r'groupId_isRead': IndexSchema(
+      id: 2897524198939668175,
+      name: r'groupId_isRead',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'groupId',
+          type: IndexType.value,
+          caseSensitive: false,
+        ),
+        IndexPropertySchema(
+          name: r'isRead',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
     r'threadId': IndexSchema(
       id: -1397508362477071783,
       name: r'threadId',
@@ -291,6 +309,14 @@ extension PostQueryWhereSort on QueryBuilder<Post, Post, QWhere> {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'groupId_isNew'),
+      );
+    });
+  }
+
+  QueryBuilder<Post, Post, QAfterWhere> anyGroupIdIsRead() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'groupId_isRead'),
       );
     });
   }
@@ -674,6 +700,141 @@ extension PostQueryWhere on QueryBuilder<Post, Post, QWhereClause> {
               indexName: r'groupId_isNew',
               lower: [groupId],
               upper: [groupId, isNew],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Post, Post, QAfterWhereClause> groupIdEqualToAnyIsRead(
+      int groupId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'groupId_isRead',
+        value: [groupId],
+      ));
+    });
+  }
+
+  QueryBuilder<Post, Post, QAfterWhereClause> groupIdNotEqualToAnyIsRead(
+      int groupId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_isRead',
+              lower: [],
+              upper: [groupId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_isRead',
+              lower: [groupId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_isRead',
+              lower: [groupId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_isRead',
+              lower: [],
+              upper: [groupId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Post, Post, QAfterWhereClause> groupIdGreaterThanAnyIsRead(
+    int groupId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'groupId_isRead',
+        lower: [groupId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Post, Post, QAfterWhereClause> groupIdLessThanAnyIsRead(
+    int groupId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'groupId_isRead',
+        lower: [],
+        upper: [groupId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Post, Post, QAfterWhereClause> groupIdBetweenAnyIsRead(
+    int lowerGroupId,
+    int upperGroupId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'groupId_isRead',
+        lower: [lowerGroupId],
+        includeLower: includeLower,
+        upper: [upperGroupId],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Post, Post, QAfterWhereClause> groupIdIsReadEqualTo(
+      int groupId, bool isRead) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'groupId_isRead',
+        value: [groupId, isRead],
+      ));
+    });
+  }
+
+  QueryBuilder<Post, Post, QAfterWhereClause> groupIdEqualToIsReadNotEqualTo(
+      int groupId, bool isRead) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_isRead',
+              lower: [groupId],
+              upper: [groupId, isRead],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_isRead',
+              lower: [groupId, isRead],
+              includeLower: false,
+              upper: [groupId],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_isRead',
+              lower: [groupId, isRead],
+              includeLower: false,
+              upper: [groupId],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'groupId_isRead',
+              lower: [groupId],
+              upper: [groupId, isRead],
               includeUpper: false,
             ));
       }

@@ -7,6 +7,7 @@ class Post {
   Id? id;
   @Index(composite: [CompositeIndex('number')])
   @Index(composite: [CompositeIndex('isNew')])
+  @Index(composite: [CompositeIndex('isRead')])
   late int groupId;
   @Index()
   late String threadId;
