@@ -21,7 +21,19 @@ extension StringUtils on String {
   String decodeText(String charset) {
     var re = RegExp(r'=\?.+?\?=');
     if (contains(re)) {
-      return MailCodec.decodeHeader(this)!;
+      int start = 0;
+      int end = 0;
+      var text = this;
+      do {
+        start = text.indexOf(r'=?', end);
+        end = start == -1 ? -1 : text.indexOf(r'?=', start) + 1;
+        if (start != -1 && end != -1) {
+          var replace =
+              text.substring(start, end).replaceAll(RegExp(r'\s'), '');
+          text = text.replaceRange(start, end, replace);
+        }
+      } while (start != -1 && end != -1);
+      return MailCodec.decodeHeader(text)!;
     } else if (charset != '') {
       return Charset.decode(latin1.encode(this), charset);
     } else {
