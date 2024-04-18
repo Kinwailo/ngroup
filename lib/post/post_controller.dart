@@ -549,11 +549,13 @@ class PostsLoader {
 
     if (Settings.stripText.val) {
       text = text.replaceAll('\u200b', '');
+      if (Settings.stripSameContent.val) {
+        var esc = RegExp.escape(data.parent?.body?.text ?? '');
+        var re = RegExp('^$esc\$', multiLine: true);
+        text = text.replaceAll(re, '');
+      }
       text = text.stripSignature;
       text = text.stripQuote;
-      if (Settings.stripSameContent.val) {
-        text = text.replaceAll(data.parent?.body?.text ?? '', '');
-      }
       text = text.stripMultiEmptyLine;
       text = text.stripUnicodeEmojiModifier;
       text = text.stripCustomPattern;
