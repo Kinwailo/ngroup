@@ -405,7 +405,7 @@ class PostQuote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context).extension<NGroupTheme>()!;
-    var quote = data.body?.text.shortReply ?? '';
+    var quote = data.body?.text.noLinebreak ?? '';
     if (quote.isEmpty) quote = 'No content.';
     return Card(
       color: theme.quote,
@@ -512,7 +512,7 @@ class PostBodyText extends HookConsumerWidget {
     final clearSelection = useState(0);
 
     var text = data.body?.text ?? '';
-    if (short) text = text.trim().shortReply;
+    if (short) text = text.noLinebreak;
     text += ' ';
     var hide = Settings.hideText.val;
 

@@ -201,7 +201,7 @@ class PostsLoader {
       }
 
       ref.read(titleProvider.notifier).state =
-          _posts.firstOrNull?.post.subject ?? '';
+          _posts.firstOrNull?.post.subject.noLinebreak ?? '';
     }
     progress.value = 0;
     unread.value = _posts.whereNot((p) => p.post.isRead).length;
@@ -549,11 +549,7 @@ class PostsLoader {
 
     if (Settings.stripText.val) {
       text = text.replaceAll('\u200b', '');
-      if (Settings.stripSameContent.val) {
-        var esc = RegExp.escape(data.parent?.body?.text ?? '');
-        var re = RegExp('^$esc\$', multiLine: true);
-        text = text.replaceAll(re, '');
-      }
+      text = text.stripSameContent(data.parent?.body?.text ?? '');
       text = text.stripSignature;
       text = text.stripQuote;
       text = text.stripMultiEmptyLine;

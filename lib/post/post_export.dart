@@ -225,7 +225,8 @@ body {
 
   static String _export(List<PostData> posts) {
     var output = StringBuffer();
-    output.write(exportBegin.replaceAll(r'$title$', posts[0].post.subject));
+    output.write(
+        exportBegin.replaceAll(r'$title$', posts[0].post.subject.noLinebreak));
 
     if (posts.length == 1) {
       _exportPost(posts.first, output);

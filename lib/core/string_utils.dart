@@ -7,6 +7,7 @@ import '../settings/settings.dart';
 extension StringUtils on String {
   String get sender => _extractSender(this);
   String get email => _extractEmail(this);
+  String get noLinebreak => _noLinebreak(this);
   String get stripSignature => _stripSignature(this);
   String get stripQuote => _stripQuote(this);
   String get stripMultiEmptyLine => _stripMultiEmptyLine(this);
@@ -14,7 +15,6 @@ extension StringUtils on String {
   String get stripHtmlTag => _stripHtmlTag(this);
   String get stripUnicodeEmojiModifier => _stripUnicodeEmojiModifier(this);
   String get stripCustomPattern => _stripCustomPattern(this);
-  String get shortReply => _shortReply(this);
 
   bool get containsUuencode => _containsUuencode(this);
 
@@ -59,6 +59,24 @@ extension StringUtils on String {
     var re = RegExp(r'^(.*)(?:[_ ])<(.*)>$');
     var match = re.firstMatch(from);
     return match?.group(2) ?? from;
+  }
+
+  String _noLinebreak(String text) {
+    var re = RegExp(r'(\n\s?){3}');
+    text = text.trim();
+    while (text.contains(re)) {
+      text = text.replaceAll(re, '\n\n');
+    }
+    text = text.replaceAll('\n\n', '⤶ ');
+    text = text.replaceAll('\n', '⤶ ');
+    return text;
+  }
+
+  String stripSameContent(String text) {
+    if (!Settings.stripSameContent.val) return this;
+    var esc = RegExp.escape(text);
+    var re = RegExp('^$esc\$', multiLine: true);
+    return replaceAll(re, '');
   }
 
   String _stripSignature(String text) {
@@ -113,16 +131,6 @@ extension StringUtils on String {
     while (text.contains(re)) {
       text = text.replaceAll(re, '\n\n');
     }
-    return text;
-  }
-
-  String _shortReply(String text) {
-    var re = RegExp(r'(\n\s?){3}');
-    while (text.contains(re)) {
-      text = text.replaceAll(re, '\n\n');
-    }
-    text = text.replaceAll('\n\n', '⤶ ');
-    text = text.replaceAll('\n', '⤶ ');
     return text;
   }
 

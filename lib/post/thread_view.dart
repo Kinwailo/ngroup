@@ -199,7 +199,7 @@ class ThreadTileContent extends HookConsumerWidget {
               data: MediaQuery.of(context).copyWith(
                   textScaler:
                       TextScaler.linear(Settings.contentScale.val / 100)),
-              child: Text(thread.subject),
+              child: Text(thread.subject.noLinebreak),
             ),
             subtitle: Text.rich(
               TextSpan(
