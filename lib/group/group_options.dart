@@ -66,7 +66,7 @@ class GroupOptions {
 
     askIfMore = PrefsValue(
       'askIfMore',
-      false,
+      true,
       _storage,
       description: 'Ask if more message to download',
     );
