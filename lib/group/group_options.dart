@@ -13,6 +13,7 @@ class GroupOptions {
   late PrefsValue<String> display;
   late PrefsValue<String> charset;
   late PrefsValue<int> identity;
+  late PrefsValue<bool> firstRefresh;
   late PrefsValue<bool> autoRefresh;
   late PrefsValue<int> refreshMax;
   late PrefsValue<bool> askIfMore;
@@ -47,6 +48,12 @@ class GroupOptions {
       _storage,
       description: 'Default identity',
       prompt: 'Select the identity',
+    );
+
+    firstRefresh = PrefsValue(
+      'firstRefresh',
+      true,
+      _storage,
     );
 
     autoRefresh = PrefsValue(

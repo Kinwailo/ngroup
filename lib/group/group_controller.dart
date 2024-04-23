@@ -166,6 +166,7 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
     bool silently = false,
   }) async {
     var data = await future;
+    data.options.firstRefresh.val = false;
 
     pd.message.value = 'Downloading...';
     pd.show();

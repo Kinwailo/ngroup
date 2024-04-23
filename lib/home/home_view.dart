@@ -34,7 +34,9 @@ class HomeView extends HookConsumerWidget {
         var pd = ProgressDialog(context);
         var sd = SelectionDialog(context);
         var group = await Database.getGroup(groupId);
-        if (group != null && GroupOptions(group).autoRefresh.val) {
+        if (group == null) return;
+        var options = GroupOptions(group);
+        if (options.firstRefresh.val || options.autoRefresh.val) {
           ref.read(groupDataProvider.notifier).reload(pd, sd);
         }
       }
