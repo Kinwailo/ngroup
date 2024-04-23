@@ -77,8 +77,15 @@ class PostView extends HookConsumerWidget {
                               shape: BoxShape.circle,
                               border: Border.all(
                                   color: colorScheme.outline.withOpacity(0.4))),
-                          child: const SizedBox.square(
-                              dimension: 40, child: Icon(Icons.double_arrow)),
+                          child: SizedBox.square(
+                              dimension: 40,
+                              child: RotatedBox(
+                                  quarterTurns:
+                                      Settings.nextThreadDirection.val ==
+                                              NextDirection.newer
+                                          ? 0
+                                          : 2,
+                                  child: const Icon(Icons.double_arrow))),
                         ),
                         OverflowBox(
                           maxWidth: constraints.maxWidth * 0.8,
@@ -174,12 +181,14 @@ class PostNext extends HookConsumerWidget {
     var text = next == null ? 'No more' : next.thread.subject;
 
     useListenable(loader.unread);
+    useListenable(Settings.nextThreadDirection);
 
     return AnimatedSwitcher(
       duration: Durations.short4,
       child: (!showNoMore && next == null) || loader.unread.value > 0
           ? const SizedBox.shrink()
           : Card(
+              key: ValueKey(text),
               elevation: 2,
               color: colorScheme.surfaceVariant,
               shape: RoundedRectangleBorder(

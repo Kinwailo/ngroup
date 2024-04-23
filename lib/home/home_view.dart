@@ -188,6 +188,7 @@ class HomeActionButton extends HookConsumerWidget {
     useListenable(loader.unread);
     useListenable(controller.sendable);
     useListenable(nav.path);
+    useListenable(Settings.nextThreadDirection);
 
     var refresh = Opacity(
       key: ValueKey('refresh ${groupId != -1}'),
@@ -207,7 +208,8 @@ class HomeActionButton extends HookConsumerWidget {
     var fab = switch (nav.path.value) {
       'threads' when !Adaptive.useTwoPaneUI => refresh,
       'posts' when nextThread => badges.Badge(
-          key: ValueKey('next thread ${nextCount > 0}'),
+          key: ValueKey(
+              'next thread ${nextCount > 0} ${Settings.nextThreadDirection.val}'),
           ignorePointer: true,
           showBadge: Settings.unreadOnNext.val && nextCount > 0,
           position: badges.BadgePosition.topEnd(top: 0, end: -2),
@@ -226,12 +228,25 @@ class HomeActionButton extends HookConsumerWidget {
           badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
           child: Opacity(
             opacity: nextCount == 0 ? 0.3 : 1.0,
-            child: FloatingActionButton(
-              mini: Adaptive.isDesktop,
-              heroTag: null,
-              onPressed:
-                  nextCount == 0 ? null : () => ref.read(threadsLoader).next(),
-              child: const Icon(Icons.double_arrow),
+            child: GestureDetector(
+              onLongPress: () => Settings.nextThreadDirection.val =
+                  Settings.nextThreadDirection.val == NextDirection.newer
+                      ? NextDirection.older
+                      : NextDirection.newer,
+              child: FloatingActionButton(
+                mini: Adaptive.isDesktop,
+                heroTag: null,
+                onPressed: nextCount == 0
+                    ? null
+                    : () => ref.read(threadsLoader).next(),
+                child: RotatedBox(
+                  quarterTurns:
+                      Settings.nextThreadDirection.val == NextDirection.newer
+                          ? 0
+                          : 2,
+                  child: const Icon(Icons.double_arrow),
+                ),
+              ),
             ),
           ),
         ),

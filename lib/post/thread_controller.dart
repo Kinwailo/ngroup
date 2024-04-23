@@ -75,7 +75,9 @@ class ThreadsLoader {
     var id = ref.read(selectedThreadProvider);
     if (id.isEmpty) return const Iterable.empty();
     var index = getIndex(id);
-    var threads = _threads.values.take(index).toList().reversed;
+    var threads = Settings.nextThreadDirection.val == NextDirection.newer
+        ? _threads.values.take(index).toList().reversed
+        : _threads.values.skip(index + 1);
     return switch (Settings.nextThreadMode.val) {
       NextThread.nextWithNew =>
         threads.where((e) => e.thread.newCount > 0 && e.thread.unreadCount > 0),

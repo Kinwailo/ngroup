@@ -14,6 +14,8 @@ enum ShowQuote { always, smart, never }
 
 enum NextThread { next, nextWithUnread, nextWithNew }
 
+enum NextDirection { newer, older }
+
 enum SortMode { hierarchy, order }
 
 class Settings {
@@ -218,6 +220,15 @@ class Settings {
     NextThread.values,
     _storage,
     description: 'Next thread mode',
+    prompt: 'Select preferred option',
+  );
+
+  static var nextThreadDirection = PrefsEnum(
+    'nextThreadDirection',
+    NextDirection.newer,
+    NextDirection.values,
+    _storage,
+    description: 'Next thread direction',
     prompt: 'Select preferred option',
   );
 }

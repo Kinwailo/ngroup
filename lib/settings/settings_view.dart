@@ -64,6 +64,7 @@ class SettingsView extends ConsumerWidget {
               PrefsBoolTile(Settings.unreadOnNext),
               PrefsBoolTile(Settings.threadOnNext),
               PrefsEnumTile(Settings.nextThreadMode),
+              PrefsEnumTile(Settings.nextThreadDirection),
             ]),
             const SizedBox(height: 40),
           ],
