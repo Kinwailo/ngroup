@@ -63,8 +63,13 @@ class SettingsView extends ConsumerWidget {
             PrefsGroupTile(children: [
               PrefsBoolTile(Settings.unreadOnNext),
               PrefsBoolTile(Settings.threadOnNext),
+              PrefsBoolTile(Settings.nextTitle),
               PrefsEnumTile(Settings.nextThreadMode),
               PrefsEnumTile(Settings.nextThreadDirection),
+              const ListTile(
+                  title: Text('Tips on next thread'),
+                  subtitle: Text(
+                      'You can long press the next button to toggle direction, pull from the top to perform next action.\n')),
             ]),
             const SizedBox(height: 40),
           ],

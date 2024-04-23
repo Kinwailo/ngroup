@@ -214,6 +214,13 @@ class Settings {
     description: 'Next thread when no unread',
   );
 
+  static var nextTitle = PrefsValue(
+    'nextTitle',
+    true,
+    _storage,
+    description: 'Show title beside next button',
+  );
+
   static var nextThreadMode = PrefsEnum(
     'nextThreadMode',
     NextThread.next,

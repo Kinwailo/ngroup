@@ -123,7 +123,9 @@ class PostView extends HookConsumerWidget {
                     ? EdgeInsets.only(
                         right: Adaptive.isDesktop ? 100 : 130, bottom: 48)
                     : const EdgeInsets.only(right: 74, bottom: 52),
-                child: const PostNext(false),
+                child: Visibility(
+                    visible: Settings.nextTitle.val,
+                    child: const PostNext(false)),
               ),
             ),
           ],
