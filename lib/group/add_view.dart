@@ -217,7 +217,7 @@ class AddStep3 extends HookConsumerWidget {
     return Stack(
       children: [
         ListView.builder(
-          padding: const EdgeInsets.only(top: 68),
+          padding: const EdgeInsets.only(top: 68, left: 8),
           controller: scrollController,
           physics: const ClampingScrollPhysics(),
           itemCount: selection.length,
@@ -232,6 +232,7 @@ class AddStep3 extends HookConsumerWidget {
                     Text(
                       '${key['name']} (${key['last'] - key['first'] + 1})',
                       overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const Spacer(),
