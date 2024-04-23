@@ -268,11 +268,16 @@ class HomeActionButton extends HookConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
           ),
           badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
-          child: FloatingActionButton(
-            mini: Adaptive.isDesktop,
-            heroTag: null,
-            child: const Icon(Icons.arrow_downward),
-            onPressed: () => ref.read(postsLoader).nextUnread(),
+          child: Opacity(
+            opacity: loader.unread.value == 0 ? 0.3 : 1.0,
+            child: FloatingActionButton(
+              mini: Adaptive.isDesktop,
+              heroTag: null,
+              onPressed: loader.unread.value == 0
+                  ? null
+                  : () => ref.read(postsLoader).nextUnread(),
+              child: const Icon(Icons.arrow_downward),
+            ),
           )),
       'write' => Opacity(
           key: ValueKey('write ${controller.sendable.value}'),
