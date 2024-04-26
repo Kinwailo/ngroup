@@ -4,42 +4,9 @@ import 'dart:convert';
 import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter/foundation.dart';
 
-abstract class NNTPException implements Exception {
-  NNTPException(this.message);
+import 'nntp.dart';
 
-  final String message;
-
-  @override
-  String toString() {
-    return '$runtimeType: $message';
-  }
-}
-
-class NNTPTimeoutException extends NNTPException {
-  NNTPTimeoutException(super.message);
-}
-
-class NNTPReplyException extends NNTPException {
-  NNTPReplyException(super.message);
-}
-
-class NNTPTemporaryException extends NNTPException {
-  NNTPTemporaryException(super.message);
-}
-
-class NNTPPermanentException extends NNTPException {
-  NNTPPermanentException(super.message);
-}
-
-class NNTPProtocolException extends NNTPException {
-  NNTPProtocolException(super.message);
-}
-
-class NNTPDataException extends NNTPException {
-  NNTPDataException(super.message);
-}
-
-class NNTPClient {
+class NNTPClient extends NNTP {
   static const longResponse = [
     '100', // HELP
     '101', // CAPABILITIES
@@ -72,9 +39,6 @@ class NNTPClient {
 
   final String host;
   final int port;
-  bool connected = false;
-  bool error = false;
-  VoidCallback? onProgress;
 
   var welcome = '';
   var capabilities = <String, List<String>>{};
@@ -111,6 +75,7 @@ class NNTPClient {
     connected = true;
   }
 
+  @override
   Future<void> close({bool error = false}) async {
     await _subscription.cancel();
     await _stream.cancel();
@@ -187,7 +152,7 @@ class NNTPClient {
     return await _getLongResponse();
   }
 
-  _getCapabilities() async {
+  Future<void> _getCapabilities() async {
     try {
       var data = await _longCommand('CAPABILITIES');
       data.map((d) => d.split(' '));
@@ -202,7 +167,7 @@ class NNTPClient {
     }
   }
 
-  _getOverviewFmt() async {
+  Future<void> _getOverviewFmt() async {
     try {
       var data = await _longCommand('LIST OVERVIEW.FMT');
       _parseOverviewFmt(data);
@@ -211,7 +176,7 @@ class NNTPClient {
     }
   }
 
-  _parseOverviewFmt(List<String> data) {
+  void _parseOverviewFmt(List<String> data) {
     var fmt = <String>[];
     for (var d in data) {
       String name;
@@ -234,19 +199,16 @@ class NNTPClient {
     overviewFmt = fmt;
   }
 
-  Future<List<Map<String, dynamic>>> list() async {
+  @override
+  Future<List<GroupInfo>> list() async {
     var data = await _longCommand('LIST');
     return data
         .map((d) => d.split(' '))
-        .map((d) => {
-              'name': d[0],
-              'last': int.parse(d[1]),
-              'first': int.parse(d[2]),
-              'flag': d[3]
-            })
+        .map((d) => GroupInfo(d[0], int.parse(d[2]), int.parse(d[1])))
         .toList();
   }
 
+  @override
   Future<({int count, int first, int last})> group(String name) async {
     var response = await _shortCommand('GROUP $name');
     if (!response.startsWith('211')) {
@@ -262,13 +224,14 @@ class NNTPClient {
     return (count: info[0], first: info[1], last: info[2]);
   }
 
-  Future<List<Map<String, dynamic>>> xover(int start, int end) async {
+  @override
+  Future<List<MessageInfo>> xover(int start, int end) async {
     var data = await _longCommand('XOVER $start-$end');
     return _parseOverview(data);
   }
 
-  Future<List<Map<String, dynamic>>> _parseOverview(List<String> data) async {
-    var overview = <Map<String, dynamic>>[];
+  Future<List<MessageInfo>> _parseOverview(List<String> data) async {
+    var overview = <MessageInfo>[];
     for (var d in data) {
       var tokens = d.split('\t');
       var number = int.parse(tokens[0]);
@@ -278,30 +241,30 @@ class NNTPClient {
       }
       var fields = Map<String, dynamic>.fromIterables(
           defaultOverviewFmt, tokens.sublist(1, defaultOverviewFmt.length + 1));
-      fields['number'] = number;
-      // fields[defaultOverviewFmt[0]] =
-      //     MailCodec.decodeHeader(fields[defaultOverviewFmt[0]]);
-      // fields[defaultOverviewFmt[1]] =
-      //     MailCodec.decodeHeader(fields[defaultOverviewFmt[1]]);
-      fields[defaultOverviewFmt[2]] =
-          DateCodec.decodeDate(fields[defaultOverviewFmt[2]]);
-      fields[defaultOverviewFmt[5]] =
-          int.tryParse(fields[defaultOverviewFmt[5]]) ?? 0;
-      fields[defaultOverviewFmt[6]] =
-          int.tryParse(fields[defaultOverviewFmt[6]]) ?? 0;
-
-      overview.add(fields);
+      var subject = fields[defaultOverviewFmt[0]];
+      var from = fields[defaultOverviewFmt[1]];
+      var date =
+          DateCodec.decodeDate(fields[defaultOverviewFmt[2]]) ?? DateTime.now();
+      var messageId = fields[defaultOverviewFmt[3]];
+      var references = fields[defaultOverviewFmt[4]];
+      var bytes = int.tryParse(fields[defaultOverviewFmt[5]]) ?? 0;
+      var line = int.tryParse(fields[defaultOverviewFmt[6]]) ?? 0;
+      var info = MessageInfo(
+          number, subject, from, date, messageId, references, bytes, line);
+      overview.add(info);
     }
     return overview;
   }
 
+  @override
   Future<List<String>> article(String messageId) async {
     return await _longCommand('ARTICLE $messageId');
   }
 
-  Future<String> post(String data) async {
+  @override
+  Future<String> post(String text) async {
     await _shortCommand('POST');
-    _socket.write('$data\r\n.\r\n');
+    _socket.write('$text\r\n.\r\n');
     await _socket.flush();
     return await _getResponse();
   }

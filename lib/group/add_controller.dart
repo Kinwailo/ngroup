@@ -7,6 +7,7 @@ import '../core/adaptive.dart';
 import '../database/database.dart';
 import '../database/models.dart';
 import '../home/home_controller.dart';
+import '../nntp/nntp.dart';
 import '../nntp/nntp_service.dart';
 import '../post/thread_view.dart';
 import 'group_controller.dart';
@@ -24,7 +25,7 @@ final selectedServerProvider = StateProvider<int>((ref) {
 final stepProvider = NotifierProvider<StepNotifier, int>(StepNotifier.new);
 
 final selectionProvider =
-    AsyncNotifierProvider<SelectionNotifier, Map<Map<String, dynamic>, bool>>(
+    AsyncNotifierProvider<SelectionNotifier, Map<GroupInfo, bool>>(
         SelectionNotifier.new);
 
 class StepNotifier extends Notifier<int> {
@@ -120,15 +121,15 @@ class StepNotifier extends Notifier<int> {
   }
 }
 
-class SelectionNotifier extends AsyncNotifier<Map<Map<String, dynamic>, bool>> {
+class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
   NNTPService? _nntp;
-  final Map<Map<String, dynamic>, bool> _selectionMap = {};
+  final Map<GroupInfo, bool> _selectionMap = {};
 
   String address = '';
   int port = NNTPService.defaultPort;
 
   @override
-  FutureOr<Map<Map<String, dynamic>, bool>> build() => {};
+  FutureOr<Map<GroupInfo, bool>> build() => {};
 
   Future<void> connect() async {
     state = const AsyncLoading();
@@ -137,20 +138,12 @@ class SelectionNotifier extends AsyncNotifier<Map<Map<String, dynamic>, bool>> {
     });
   }
 
-  Future<Map<Map<String, dynamic>, bool>> _connect() async {
+  Future<Map<GroupInfo, bool>> _connect() async {
     _nntp = await NNTPService.connectAddress(address, port);
 
     _selectionMap.clear();
     var list = await _nntp!.getGroupList();
-    list = list..sort((a, b) => a['name'].compareTo(b['name']));
-    list = list
-        .map((e) => e
-          ..putIfAbsent(
-              'group',
-              () => Group()
-                ..name = e['name']
-                ..serverId = e['serverId']))
-        .toList();
+    list = list..sort((a, b) => a.name.compareTo(b.name));
     _selectionMap.addAll({for (var item in list) item: false});
 
     return _selectionMap;
@@ -161,7 +154,7 @@ class SelectionNotifier extends AsyncNotifier<Map<Map<String, dynamic>, bool>> {
     state = AsyncData(_selectionMap);
   }
 
-  void toggle(Map<String, dynamic> key) {
+  void toggle(GroupInfo key) {
     _selectionMap.update(key, (value) => !value);
     state = AsyncData(_selectionMap);
   }
@@ -169,7 +162,9 @@ class SelectionNotifier extends AsyncNotifier<Map<Map<String, dynamic>, bool>> {
   Future<Group?> addGroups() async {
     var list = state.requireValue.entries
         .where((e) => e.value)
-        .map((e) => e.key['group'])
+        .map((e) => Group()
+          ..name = e.key.name
+          ..serverId = e.key.serverId)
         .cast<Group>()
         .toList();
     await _nntp!.addGroups(list);

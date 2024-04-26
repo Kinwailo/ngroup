@@ -220,9 +220,9 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
       }
       data.options.lastDownload.val = last;
 
-      pd.max.value = count;
-      pd.prepare.value = false;
       nntp.onProgress(() {
+        pd.max.value = count;
+        pd.prepare.value = false;
         pd.step(1);
         pd.message.value =
             'Downloading ${pd.progress.value} / ${pd.max.value}.';

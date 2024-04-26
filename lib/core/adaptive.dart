@@ -14,7 +14,7 @@ import '../settings/settings.dart';
 import '../widgets/window_frame.dart';
 
 class Adaptive {
-  static String _dataPath = dirname(Platform.resolvedExecutable);
+  static String _dataPath = kIsWeb ? '' : dirname(Platform.resolvedExecutable);
   static String get dataPath => _dataPath;
 
   static const bool forceMobile = false;
@@ -28,13 +28,14 @@ class Adaptive {
   static double? get appBarHeight => isDesktop ? 32 : null;
 
   static initDataPath() async {
+    if (kIsWeb) return;
     if (!isDesktop) {
       _dataPath = (await getApplicationSupportDirectory()).path;
     }
   }
 
   static initWindow() async {
-    if (isDesktop && !kIsWeb) {
+    if (!kIsWeb && isDesktop) {
       await windowManager.ensureInitialized();
 
       WindowOptions windowOptions = WindowOptions(
@@ -71,7 +72,7 @@ class Adaptive {
   }
 
   static Widget desktopFrame(Widget child) {
-    if (!isDesktop || kIsWeb) return child;
+    if (kIsWeb || !isDesktop) return child;
     return WindowShadow(WindowFrame(child));
   }
 

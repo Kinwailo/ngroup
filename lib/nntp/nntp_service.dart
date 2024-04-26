@@ -7,7 +7,7 @@ import 'package:synchronized/synchronized.dart';
 import '../database/database.dart';
 import '../database/models.dart';
 import '../core/string_utils.dart';
-import 'nntp_client.dart';
+import 'nntp.dart';
 
 class NNTPService {
   static const int defaultPort = 119;
@@ -17,7 +17,7 @@ class NNTPService {
 
   final Lock _nntpLock = Lock();
 
-  NNTPClient _client;
+  NNTP _client;
   int _serverId;
   final String _host;
   final int _port;
@@ -40,7 +40,7 @@ class NNTPService {
     final key = '$host:$port';
     var nntp = _pool[key];
     if (nntp == null) {
-      var client = await NNTPClient.connect(host, port);
+      var client = await NNTP.connect(host, port);
       if (client != null && client.connected) {
         var id = await _detectServerId(host, port);
         nntp = NNTPService._(client, id, host, port);
@@ -62,7 +62,7 @@ class NNTPService {
 
   Future<bool> _checkConnection() async {
     if (!_client.error) return true;
-    var client = await NNTPClient.connect(_host, _port);
+    var client = await NNTP.connect(_host, _port);
     if (client == null || !client.connected) return false;
     _client = client;
     return true;
@@ -72,20 +72,20 @@ class NNTPService {
     _client.onProgress = action;
   }
 
-  Future<List<Map<String, dynamic>>> getGroupList() async {
+  Future<List<GroupInfo>> getGroupList() async {
     if (!await _checkConnection()) return [];
     return await _nntpLock.synchronized(() async {
       return await _getGroupList();
     });
   }
 
-  Future<List<Map<String, dynamic>>> _getGroupList() async {
+  Future<List<GroupInfo>> _getGroupList() async {
     var ignore = (await Database.groupList(serverId: _serverId))
         .map((group) => group.name)
         .toSet();
     var list = (await _client.list())
-        .where((e) => !ignore.contains(e['name']))
-        .map((e) => e..putIfAbsent('serverId', () => _serverId))
+        .where((e) => !ignore.contains(e.name))
+        .map((e) => e..serverId = _serverId)
         .toList();
     return list;
   }
@@ -158,16 +158,16 @@ class NNTPService {
 
     var posts = list.map((e) {
       var p = Post()
-        ..subject = e['subject'].toString().decodeText(charset).trim()
-        ..from = e['from'].toString().decodeText(charset).trim()
-        ..dateTime = e['date']
-        ..messageId = e['message-id']
-        ..number = e['number']
-        ..bytes = e[':bytes']
+        ..subject = e.subject.decodeText(charset).trim()
+        ..from = e.from.decodeText(charset).trim()
+        ..dateTime = e.date
+        ..messageId = e.messageId
+        ..number = e.number
+        ..bytes = e.bytes
         ..isNew = true
         ..isRead = false
         ..groupId = id;
-      var ref = e['references'].toString().trim();
+      var ref = e.references.trim();
       p.references = ref.isEmpty ? [] : ref.split(' ');
       p.threadId = p.references.isEmpty ? p.messageId : p.references[0];
       children
@@ -176,14 +176,14 @@ class NNTPService {
       return p;
     }).toList();
 
-    var threads = list.where((e) => e['references'] == '').map((e) {
+    var threads = list.where((e) => e.references == '').map((e) {
       var t = Thread()
-        ..subject = e['subject'].toString().decodeText(charset).trim()
-        ..from = e['from'].toString().decodeText(charset).trim()
-        ..dateTime = e['date']
-        ..messageId = e['message-id']
-        ..number = e['number']
-        ..bytes = e[':bytes']
+        ..subject = e.subject.decodeText(charset).trim()
+        ..from = e.from.decodeText(charset).trim()
+        ..dateTime = e.date
+        ..messageId = e.messageId
+        ..number = e.number
+        ..bytes = e.bytes
         ..isNew = true
         ..isRead = false
         ..newCount = 0

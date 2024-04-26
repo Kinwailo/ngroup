@@ -224,13 +224,13 @@ class AddStep3 extends HookConsumerWidget {
           itemBuilder: (_, index) {
             var key = selection.keys.elementAt(index);
             return Visibility(
-              visible: key['name'].toString().contains(filter.text),
+              visible: key.name.toString().contains(filter.text),
               child: InkWell(
                 onTap: () => ref.read(selectionProvider.notifier).toggle(key),
                 child: Row(
                   children: [
                     Text(
-                      '${key['name']} (${key['last'] - key['first'] + 1})',
+                      '${key.name} (${key.last - key.first + 1})',
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                       style: Theme.of(context).textTheme.titleMedium,
