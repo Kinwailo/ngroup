@@ -583,16 +583,19 @@ class PostsLoader {
     var filename = 'image.jpg';
     if (match.groupCount > 0) filename = match.group(1)!;
     if (start == -1) return (null, '');
-    var end = text.indexOf(RegExp(r'\n(`|\s)?\nend(\n)?'), start);
-    if (end == -1) return (null, '');
+    // var end = text.indexOf(RegExp(r'\n(`|\s)?\nend(\n)?'), start);
+    // if (end == -1) return (null, '');
+    var stop = text.indexOf(RegExp(r'\nend\s?(\n|$)'), start);
+    if (stop == -1) stop = text.length;
 
     const b64 =
         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
     var data = StringBuffer();
-    end = text.indexOf("\n", start + 10);
+    var end = text.indexOf("\n", start + 10);
 
     while (end >= 0) {
       start = end + 1;
+      if (start >= stop) break;
       var next = text.indexOf("\n", start);
       end = (text.codeUnitAt(start++) - 32) & 0x3f;
       if (end == 0) break;

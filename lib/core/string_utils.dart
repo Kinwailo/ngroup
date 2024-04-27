@@ -163,8 +163,10 @@ extension StringUtils on String {
     var re = RegExp(r'\nbegin\s[0-7]{3}\s.+\n');
     start = text.indexOf(re);
     if (start != -1) {
-      end = text.indexOf(RegExp(r'\n(`|\s)?\nend(\n)?'), start);
-      text = text.substring(0, start) + text.substring(end + 6);
+      // end = text.indexOf(RegExp(r'\n(`|\s)?\nend(\n)?'), start);
+      // text = text.substring(0, start) + text.substring(end + 6);
+      end = text.indexOf(RegExp(r'\nend\s?(\n|$)'), start);
+      text = text.replaceRange(start, end == -1 ? null : end + 4, '');
     }
     return text;
   }
