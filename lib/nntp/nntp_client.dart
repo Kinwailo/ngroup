@@ -264,6 +264,7 @@ class NNTPClient extends NNTP {
   @override
   Future<String> post(String text) async {
     await _shortCommand('POST');
+    text = text.replaceAll(RegExp(r'^\.', multiLine: true), '..');
     _socket.write('$text\r\n.\r\n');
     await _socket.flush();
     return await _getResponse();
