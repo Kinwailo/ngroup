@@ -442,6 +442,14 @@ class DatabaseImp implements AppDatabase {
   }
 
   @override
+  Future<Post?> getPost(String messageId) async {
+    var store = stringMapStoreFactory.store('Post');
+    var snapshot = await store.record(messageId).getSnapshot(_sembast);
+    if (snapshot == null) return null;
+    return _toPost(snapshot);
+  }
+
+  @override
   Future<void> resetAllNewPosts(int groupId) async {
     var store = stringMapStoreFactory.store('Post');
     var finder = Finder(

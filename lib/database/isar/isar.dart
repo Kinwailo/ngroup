@@ -256,6 +256,11 @@ class DatabaseImp implements AppDatabase {
   }
 
   @override
+  Future<Post?> getPost(String messageId) async {
+    return _isar.posts.where().messageIdEqualTo(messageId).findFirst();
+  }
+
+  @override
   Future<void> resetAllNewPosts(int groupId) async {
     var posts =
         await _isar.posts.where().groupIdIsNewEqualTo(groupId, true).findAll();

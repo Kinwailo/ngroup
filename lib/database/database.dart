@@ -70,6 +70,8 @@ abstract class AppDatabase {
 
   Future<void> updatePost(Post post);
 
+  Future<Post?> getPost(String messageId);
+
   Future<void> resetAllNewPosts(int groupId);
 
   Future<void> markAllPostsRead(int groupId);

@@ -167,11 +167,20 @@ class NNTPService {
       var ref = e.references.trim();
       p.references = ref.isEmpty ? [] : ref.split(' ');
       p.threadId = p.references.isEmpty ? p.messageId : p.references[0];
+      return p;
+    }).toList();
+
+    var postsMap = {for (var e in posts) e.messageId: e};
+    for (var p in posts) {
+      if (p.threadId != p.messageId) {
+        var parent = postsMap[p.threadId];
+        parent ??= await AppDatabase.get.getPost(p.threadId);
+        p.threadId = parent?.threadId ?? p.threadId;
+      }
       children
           .putIfAbsent(p.threadId, () => [])
           .add((p.from.sender, p.dateTime, p.bytes));
-      return p;
-    }).toList();
+    }
 
     var threads = list.where((e) => e.references == '').map((e) {
       var t = Thread()
