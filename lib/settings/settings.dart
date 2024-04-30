@@ -79,6 +79,13 @@ class Settings {
     description: 'Maximize width of webapp container',
   );
 
+  static var useHTTPBridge = PrefsValue(
+    'useHTTPBridge',
+    false,
+    _storage,
+    description: 'Use HTTP Bridge',
+  );
+
   static var contentScale = PrefsValue(
     'contentScale',
     100,

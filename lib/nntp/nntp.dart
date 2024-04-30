@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:ngroup/settings/settings.dart';
 
 import 'http_bridge.dart';
-// import 'nntp_client.dart';
+import 'nntp_client.dart';
 
 abstract class NNTPException implements Exception {
   NNTPException(this.message);
@@ -78,8 +79,9 @@ abstract class NNTP {
   Future<String> post(String text);
 
   static Future<NNTP?> connect(String host, int port) async {
-    // NNTP? client = await NNTPClient.connect(host, port);
-    NNTP? client = HTTPBridge(host, port);
+    NNTP? client = (kIsWeb || Settings.useHTTPBridge.val)
+        ? HTTPBridge(host, port)
+        : await NNTPClient.connect(host, port);
     return client;
   }
 }

@@ -7,6 +7,7 @@ import 'package:synchronized/synchronized.dart';
 import '../database/database.dart';
 import '../database/models.dart';
 import '../core/string_utils.dart';
+import '../settings/settings.dart';
 import 'nntp.dart';
 
 class NNTPService {
@@ -14,6 +15,7 @@ class NNTPService {
 
   static final Map<String, NNTPService> _pool = {};
   static final Lock _lock = Lock();
+  static bool _addListener = false;
 
   final Lock _nntpLock = Lock();
 
@@ -30,7 +32,18 @@ class NNTPService {
     return await connectAddress(server!.address, server.port);
   }
 
+  static void _resetAllConnection() {
+    for (var nntp in _pool.values) {
+      nntp._client.close();
+    }
+    _pool.clear();
+  }
+
   static Future<NNTPService?> connectAddress(String host, int port) async {
+    if (!_addListener) {
+      Settings.useHTTPBridge.addListener(_resetAllConnection);
+      _addListener = true;
+    }
     return await _lock.synchronized(() async {
       final key = '$host:$port';
       var nntp = _pool[key];

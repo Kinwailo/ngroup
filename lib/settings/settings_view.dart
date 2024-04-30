@@ -29,8 +29,9 @@ class SettingsView extends ConsumerWidget {
                   PrefsBoolTile(Settings.customFrame),
                 if (!Adaptive.isDesktop || Adaptive.forceMobile)
                   PrefsBoolTile(Settings.twoPane),
-                if ((kIsWeb)) PrefsBoolTile(Settings.disableWebContextMenu),
-                if ((kIsWeb)) PrefsIntTile(Settings.webappMaxWidth),
+                if (kIsWeb) PrefsBoolTile(Settings.disableWebContextMenu),
+                if (kIsWeb) PrefsIntTile(Settings.webappMaxWidth),
+                if (!kIsWeb) PrefsBoolTile(Settings.useHTTPBridge),
                 PrefsIntTile(Settings.contentScale),
               ],
             ),
