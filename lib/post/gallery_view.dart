@@ -1,15 +1,12 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:sanitize_filename/sanitize_filename.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 import '../core/adaptive.dart';
@@ -176,7 +173,7 @@ class GalleryItemView extends HookConsumerWidget {
                   opacity: animation.value,
                   child: IconButton(
                       icon: const Icon(Icons.share),
-                      onPressed: () => share(context, images[page.value])),
+                      onPressed: () => save(images[page.value])),
                 ),
               ],
       ),
@@ -309,21 +306,8 @@ class GalleryItemView extends HookConsumerWidget {
   }
 
   void save(PostImage image) async {
-    String? path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Save Image',
-      fileName: sanitizeFilename(image.filename),
-    );
-    if (path == null) return;
-    File(path).writeAsBytes(image.data!, flush: true);
-  }
-
-  void share(BuildContext context, PostImage image) async {
-    var box = context.findRenderObject() as RenderBox?;
-    var temp = await getTemporaryDirectory();
-    var file = File('${temp.path}/${sanitizeFilename(image.filename)}');
-    await file.writeAsBytes(image.data!, flush: true);
-    await Share.shareXFiles([XFile(file.path, mimeType: 'image/*')],
-        sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size);
-    await file.delete();
+    var filename = sanitizeFilename(image.filename);
+    var mime = MediaType.guessFromFileName(image.filename);
+    Adaptive.saveBinary(image.data!, 'Save Image', filename, mime.text);
   }
 }

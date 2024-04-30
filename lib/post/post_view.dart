@@ -550,23 +550,19 @@ class PostBodyText extends HookConsumerWidget {
           onOpen: (link) => launchUrlString(link.url))
     ]);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final tp = TextPainter(
-            text: TextSpan(text: text),
-            textDirection: Directionality.of(context));
-        tp.layout(maxWidth: constraints.maxWidth);
-        final length = tp.computeLineMetrics().length;
-
-        return VisibilityDetector(
-          key: Key('${data.post.messageId} body'),
-          onVisibilityChanged: (VisibilityInfo info) {
-            if (info.visibleFraction >= 1.0 ||
-                info.size.height > constraints.maxHeight / 2.0) {
-              ref.read(postsLoader).markRead(data);
-            }
-          },
-          child: GestureDetector(
+    return VisibilityDetector(
+      key: Key('${data.post.messageId} body'),
+      onVisibilityChanged: (info) {
+        if (context.mounted) ref.read(postsLoader).setVisible(data, info);
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tp = TextPainter(
+              text: TextSpan(text: text),
+              textDirection: Directionality.of(context));
+          tp.layout(maxWidth: constraints.maxWidth);
+          final length = tp.computeLineMetrics().length;
+          return GestureDetector(
             onLongPress: !Adaptive.isDesktop
                 ? null
                 : () => ref.read(postsLoader).toggleSelectable(data),
@@ -644,9 +640,9 @@ class PostBodyText extends HookConsumerWidget {
                   )
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -659,38 +655,31 @@ class PostFiles extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        return VisibilityDetector(
-          key: Key('${data.post.messageId} file'),
-          onVisibilityChanged: (VisibilityInfo info) {
-            if (info.visibleFraction >= 1.0 ||
-                info.size.height > constraints.maxHeight / 2.0) {
-              ref.read(postsLoader).markRead(data);
-            }
-          },
-          child: Center(
-            child: Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                ...data.body!.files.map((e) => ActionChip(
-                      label: Text(e.filename),
-                      avatar: const Icon(Icons.attach_file),
-                      elevation: 1,
-                      pressElevation: 2,
-                      side: BorderSide(
-                          color: colorScheme.outline.withOpacity(0.12)),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      onPressed: () => Adaptive.saveBinary(
-                          e.data!, 'Save attachment', e.filename, null),
-                    ))
-              ],
-            ),
-          ),
-        );
+    return VisibilityDetector(
+      key: Key('${data.post.messageId} file'),
+      onVisibilityChanged: (info) {
+        if (context.mounted) ref.read(postsLoader).setVisible(data, info);
       },
+      child: Center(
+        child: Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            ...data.body!.files.map((e) => ActionChip(
+                  label: Text(e.filename),
+                  avatar: const Icon(Icons.attach_file),
+                  elevation: 1,
+                  pressElevation: 2,
+                  side:
+                      BorderSide(color: colorScheme.outline.withOpacity(0.12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  onPressed: () => Adaptive.saveBinary(
+                      e.data!, 'Save attachment', e.filename, null),
+                ))
+          ],
+        ),
+      ),
     );
   }
 }
@@ -703,38 +692,31 @@ class PostImages extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        return VisibilityDetector(
-          key: Key('${data.post.messageId} image'),
-          onVisibilityChanged: (VisibilityInfo info) {
-            if (info.visibleFraction >= 1.0 ||
-                info.size.height > constraints.maxHeight / 2.0) {
-              ref.read(postsLoader).markRead(data);
-            }
-          },
-          child: Center(
-            child: Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                ...data.body!.images.map(
-                  (e) => Card(
-                    shape: RoundedRectangleBorder(
-                        side: BorderSide(
-                            color: colorScheme.outline.withOpacity(0.4)),
-                        borderRadius: BorderRadius.circular(8)),
-                    child: SizedBox(
-                      height: Settings.smallPreview.val ? 100 : null,
-                      child: GalleryItem(e.id, 'post-image'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+    return VisibilityDetector(
+      key: Key('${data.post.messageId} image'),
+      onVisibilityChanged: (info) {
+        if (context.mounted) ref.read(postsLoader).setVisible(data, info);
       },
+      child: Center(
+        child: Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            ...data.body!.images.map(
+              (e) => Card(
+                shape: RoundedRectangleBorder(
+                    side:
+                        BorderSide(color: colorScheme.outline.withOpacity(0.4)),
+                    borderRadius: BorderRadius.circular(8)),
+                child: SizedBox(
+                  height: Settings.smallPreview.val ? 100 : null,
+                  child: GalleryItem(e.id, 'post-image'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

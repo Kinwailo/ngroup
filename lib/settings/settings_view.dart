@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -24,9 +25,12 @@ class SettingsView extends ConsumerWidget {
             PrefsGroupTile(
               children: [
                 PrefsEnumTile(Settings.theme),
-                if (Adaptive.isDesktop) PrefsBoolTile(Settings.customFrame),
+                if (!kIsWeb && Adaptive.isDesktop)
+                  PrefsBoolTile(Settings.customFrame),
                 if (!Adaptive.isDesktop || Adaptive.forceMobile)
                   PrefsBoolTile(Settings.twoPane),
+                if ((kIsWeb)) PrefsBoolTile(Settings.disableWebContextMenu),
+                if ((kIsWeb)) PrefsIntTile(Settings.webappMaxWidth),
                 PrefsIntTile(Settings.contentScale),
               ],
             ),
@@ -52,7 +56,7 @@ class SettingsView extends ConsumerWidget {
               PrefsEnumTile(Settings.showQuote),
               PrefsBoolTile(Settings.shortReply),
               PrefsIntTile(Settings.shortReplySize),
-              PrefsBoolTile(Settings.linkPreview),
+              if (!kIsWeb) PrefsBoolTile(Settings.linkPreview),
               PrefsBoolTile(Settings.smallPreview),
             ]),
             PrefsGroupTile(children: [

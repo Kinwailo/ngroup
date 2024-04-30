@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:enough_mail/enough_mail.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:universal_io/io.dart';
 
 import '../database/database.dart';
 import '../group/group_controller.dart';
@@ -61,7 +63,7 @@ class WriteController {
   }
 
   void _setGroupIdentity(int groupId) async {
-    var group = await Database.getGroup(groupId);
+    var group = await AppDatabase.get.getGroup(groupId);
     var options = group == null ? null : GroupOptions(group);
     identity.value = options?.identity.val ?? -1;
   }
@@ -138,7 +140,7 @@ class WriteController {
 
     var groupId = ref.read(selectedGroupProvider);
     groupId = data.value?.post.groupId ?? groupId;
-    var group = await Database.getGroup(groupId);
+    var group = await AppDatabase.get.getGroup(groupId);
     if (group == null) throw Exception('Cannot load group data.');
 
     var content = body.text;
@@ -152,13 +154,21 @@ class WriteController {
     if (files.value.isNotEmpty) content += '\n';
 
     try {
+      var pf = 'Web';
+      if (!kIsWeb) {
+        if (Platform.isWindows) pf = 'Windows';
+        if (Platform.isMacOS) pf = 'MacOS';
+        if (Platform.isLinux) pf = 'Linux';
+        if (Platform.isAndroid) pf = 'Android';
+        if (Platform.isIOS) pf = 'IOS';
+      }
       var builder = MessageBuilder(
           subjectEncoding: HeaderEncoding.B,
           transferEncoding: TransferEncoding.eightBit)
         ..from = [MailAddress(name.text, email.text)]
         ..addHeader('Newsgroups', group.name)
         ..addHeader('References', references.join(' '))
-        ..addHeader('User-Agent', 'NGroup')
+        ..addHeader('User-Agent', 'NGroup @$pf')
         ..subject = subject.text
         ..text = content;
       for (var e in files.value) {

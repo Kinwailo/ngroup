@@ -65,6 +65,20 @@ class Settings {
     description: 'Use two pane layout',
   );
 
+  static var disableWebContextMenu = PrefsValue(
+    'disableWebContextMenu',
+    false,
+    _storage,
+    description: 'Disable browser context menu',
+  );
+
+  static var webappMaxWidth = PrefsValue(
+    'webappWidth',
+    1200,
+    _storage,
+    description: 'Maximize width of webapp container',
+  );
+
   static var contentScale = PrefsValue(
     'contentScale',
     100,
@@ -244,7 +258,7 @@ class _SettingsStorage implements PrefsStorage {
   static var _initialValue = <String, String>{};
 
   static Future<void> init() async {
-    var settings = await Database.settingList();
+    var settings = await AppDatabase.get.settingList();
     _initialValue = {for (var e in settings) e.key: e.value};
   }
 
@@ -255,9 +269,9 @@ class _SettingsStorage implements PrefsStorage {
 
   @override
   void save(String key, String value) async {
-    var setting = await Database.getSetting(key);
+    var setting = await AppDatabase.get.getSetting(key);
     setting ??= Setting()..key = key;
     setting.value = value;
-    await Database.updateSetting(setting);
+    await AppDatabase.get.updateSetting(setting);
   }
 }

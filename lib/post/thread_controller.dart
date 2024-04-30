@@ -42,7 +42,7 @@ class ThreadsLoader {
     ref.listen(selectedGroupProvider, (_, groupId) {
       scrollControl.jumpTop();
       _subscription?.cancel();
-      _subscription = Database.threadListStream(groupId).listen(
+      _subscription = AppDatabase.get.threadListStream(groupId).listen(
         (e) {
           scrollControl.saveLast((i) => getId(i));
           _threads.clear();

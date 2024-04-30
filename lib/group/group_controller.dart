@@ -17,7 +17,7 @@ import 'add_view.dart';
 import 'group_options.dart';
 
 final groupListProvider = StreamProvider<List<Group>>((ref) {
-  return Database.groupListStream().map((g) => g.sorted((a, b) {
+  return AppDatabase.get.groupListStream().map((g) => g.sorted((a, b) {
         var index = Settings.groupOrder.val.indexOf(a.id!);
         if (index == -1) return a.id!.compareTo(b.id!);
         var index2 = Settings.groupOrder.val.indexOf(b.id!);
@@ -39,7 +39,7 @@ class SelectedGroupNotifier extends Notifier<int> {
   }
 
   void selectGroup(int id) async {
-    var group = await Database.getGroup(id);
+    var group = await AppDatabase.get.getGroup(id);
     id = group == null ? -1 : id;
     state = id;
     Settings.group.val = id;
@@ -57,10 +57,10 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
   @override
   Future<GroupData> build() async {
     var id = ref.watch(selectedGroupProvider);
-    var group = await Database.getGroup(id);
+    var group = await AppDatabase.get.getGroup(id);
     if (group == null) throw Exception('Cannot load group.');
 
-    var server = await Database.getServer(group.serverId);
+    var server = await AppDatabase.get.getServer(group.serverId);
     if (server == null) throw Exception('Cannot load server.');
 
     return GroupData(server, group, GroupOptions(group));
@@ -74,7 +74,7 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
       ..message.value = 'Removing data...'
       ..show();
 
-    await Database.resetGroup(data.group.id!);
+    await AppDatabase.get.resetGroup(data.group.id!);
     data.options.lastView.val = -1;
     data.options.lastDownload.val = -1;
     pd.completed.value = true;
@@ -82,14 +82,14 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
 
   Future<void> markAllRead() async {
     var data = await future;
-    await Database.markAllThreadsRead(data.group.id!);
-    await Database.markAllPostsRead(data.group.id!);
+    await AppDatabase.get.markAllThreadsRead(data.group.id!);
+    await AppDatabase.get.markAllPostsRead(data.group.id!);
   }
 
   Future<void> resetAllNew() async {
     var data = await future;
-    await Database.resetAllNewPosts(data.group.id!);
-    await Database.resetAllNewThreads(data.group.id!);
+    await AppDatabase.get.resetAllNewPosts(data.group.id!);
+    await AppDatabase.get.resetAllNewThreads(data.group.id!);
   }
 
   Future<void> deleteGroup(ProgressDialog pd) async {
@@ -106,7 +106,7 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
 
   Future<void> _deleteGroup(Group group) async {
     var id = -1;
-    var groups = await Database.groupList();
+    var groups = await AppDatabase.get.groupList();
     if (Settings.groupOrder.val.isEmpty) {
       Settings.groupOrder.val = groups.map((e) => e.id!).toList();
     }
@@ -122,12 +122,12 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
     } else if (!Adaptive.useTwoPaneUI) {
       ref.read(leftNavigator).goto(ThreadView.path);
     }
-    await Database.deleteGroup(group.id!);
+    await AppDatabase.get.deleteGroup(group.id!);
     ref.read(selectedGroupProvider.notifier).selectGroup(id);
   }
 
   void editServer(Server server) async {
-    await Database.updateServer(server);
+    await AppDatabase.get.updateServer(server);
   }
 
   void deleteServer(Server server, ProgressDialog pd) async {
@@ -138,25 +138,25 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
       ..message.value = 'Removing data...'
       ..show();
 
-    var groups = await Database.groupList(serverId: server.id!);
+    var groups = await AppDatabase.get.groupList(serverId: server.id!);
     for (var e in groups.where((e) => e.id != data.group.id)) {
-      await Database.deleteGroup(e.id!);
+      await AppDatabase.get.deleteGroup(e.id!);
     }
     await _deleteGroup(data.group);
-    await Database.deleteServer(server.id!);
+    await AppDatabase.get.deleteServer(server.id!);
 
     pd.completed.value = true;
   }
 
   void identityRemoved(int index) async {
-    var groups = await Database.groupList();
+    var groups = await AppDatabase.get.groupList();
     for (var group in groups) {
       var options = GroupOptions(group);
       var id = options.identity.val;
       if (id == index) options.identity.val = -1;
       if (id > index) options.identity.val = id - 1;
     }
-    await Database.updateGroups(groups);
+    await AppDatabase.get.updateGroups(groups);
     ref.invalidateSelf();
   }
 
@@ -188,7 +188,7 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
 
       if (count == 0) {
         pd.message.value = 'Removing old data...';
-        await Database.sweepGroup(data.group.id!,
+        await AppDatabase.get.sweepGroup(data.group.id!,
             data.options.lastDownload.val - data.options.keepMessage.val);
 
         pd.message.value = 'No new post.';
@@ -234,7 +234,7 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
 
       pd.message.value = 'Removing old data...';
       pd.prepare.value = true;
-      await Database.sweepGroup(data.group.id!,
+      await AppDatabase.get.sweepGroup(data.group.id!,
           data.options.lastDownload.val - data.options.keepMessage.val);
 
       var msg = threads == 0 ? 'Downloaded ' : 'Downloaded $threads thread';

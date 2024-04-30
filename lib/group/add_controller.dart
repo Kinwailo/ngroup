@@ -14,7 +14,7 @@ import 'group_controller.dart';
 import 'options_view.dart';
 
 final serversProvider = StreamProvider<List<Server>>((ref) {
-  return Database.serverListStream();
+  return AppDatabase.get.serverListStream();
 });
 
 final selectedServerProvider = StateProvider<int>((ref) {
@@ -167,7 +167,7 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
           ..serverId = e.key.serverId)
         .cast<Group>()
         .toList();
-    await _nntp!.addGroups(list);
+    list = await _nntp!.addGroups(list);
     return list.firstOrNull;
   }
 }

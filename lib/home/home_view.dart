@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:badges/badges.dart' as badges;
@@ -33,7 +34,7 @@ class HomeView extends HookConsumerWidget {
       if (groupId != -1) {
         var pd = ProgressDialog(context);
         var sd = SelectionDialog(context);
-        var group = await Database.getGroup(groupId);
+        var group = await AppDatabase.get.getGroup(groupId);
         if (group == null) return;
         var options = GroupOptions(group);
         if (options.firstRefresh.val || options.autoRefresh.val) {
@@ -41,13 +42,33 @@ class HomeView extends HookConsumerWidget {
         }
       }
     });
+
     useListenable(Settings.twoPane);
     useValueChanged(Settings.twoPane.val, (_, void __) {
       ref.invalidate(leftNavigator);
       ref.invalidate(rightNavigator);
       ref.invalidate(filterProvider);
     });
-    return Adaptive.useTwoPaneUI ? const TwoPane() : const SlidePane();
+
+    useListenable(Settings.disableWebContextMenu);
+    useValueChanged(Settings.disableWebContextMenu.val, (_, void __) async {
+      Settings.disableWebContextMenu.val
+          ? await BrowserContextMenu.disableContextMenu()
+          : await BrowserContextMenu.enableContextMenu();
+    });
+
+    useListenable(Settings.webappMaxWidth);
+
+    return Scaffold(
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+            constraints: BoxConstraints(
+                minWidth: 800,
+                maxWidth: Settings.webappMaxWidth.val.toDouble()),
+            child: Adaptive.useTwoPaneUI ? const TwoPane() : const SlidePane()),
+      ),
+    );
   }
 }
 

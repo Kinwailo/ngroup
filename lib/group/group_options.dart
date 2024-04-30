@@ -65,7 +65,7 @@ class GroupOptions {
 
     refreshMax = PrefsValue(
       'refreshMax',
-      3000,
+      1000,
       _storage,
       description: 'Maximum messages to download',
       prompt: 'Enter the value',
@@ -107,8 +107,8 @@ class _OptionsStorage implements PrefsStorage {
   @override
   void save(String key, String value) async {
     _options[key] = value;
-    var group = await Database.getGroup(_id);
+    var group = await AppDatabase.get.getGroup(_id);
     group!.options = jsonEncode(_options);
-    await Database.updateGroup(group);
+    await AppDatabase.get.updateGroup(group);
   }
 }

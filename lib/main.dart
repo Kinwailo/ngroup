@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -14,9 +16,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Adaptive.initDataPath();
-  await Database.init(Adaptive.dataPath);
+  await AppDatabase.init(Adaptive.dataPath);
   await Settings.init();
   await Adaptive.initWindow();
+  if (kIsWeb) {
+    Settings.disableWebContextMenu.val
+        ? await BrowserContextMenu.disableContextMenu()
+        : await BrowserContextMenu.enableContextMenu();
+  }
 
   runApp(const ProviderScope(child: MyApp()));
 }

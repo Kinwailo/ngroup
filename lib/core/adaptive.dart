@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sanitize_filename/sanitize_filename.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:universal_io/io.dart';
+import 'package:universal_html/html.dart' show AnchorElement;
 
 import '../settings/settings.dart';
 import '../widgets/window_frame.dart';
@@ -23,7 +25,7 @@ class Adaptive {
       Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
   static bool get useTwoPaneUI =>
-      (!forceMobile && isDesktop) || Settings.twoPane.val;
+      (!forceMobile && (kIsWeb || isDesktop)) || Settings.twoPane.val;
 
   static double? get appBarHeight => isDesktop ? 32 : null;
 
@@ -79,7 +81,14 @@ class Adaptive {
   static Future<void> saveText(
       String output, String desc, String filename, String? mimeType) async {
     filename = sanitizeFilename(filename);
-    if (isDesktop) {
+    if (kIsWeb) {
+      var type = mimeType ?? '';
+      output = base64Encode(const Utf8Encoder().convert(output));
+      var a = AnchorElement(href: 'data:$type;base64,$output');
+      a.download = filename;
+      a.click();
+      a.remove();
+    } else if (isDesktop) {
       String? path = await FilePicker.platform
           .saveFile(dialogTitle: desc, fileName: filename);
       if (path != null) await File(path).writeAsString(output, flush: true);
@@ -95,7 +104,14 @@ class Adaptive {
   static Future<void> saveBinary(
       Uint8List output, String desc, String filename, String? mimeType) async {
     filename = sanitizeFilename(filename);
-    if (isDesktop) {
+    if (kIsWeb) {
+      var type = mimeType ?? 'image/png';
+      var base64 = base64Encode(output);
+      var a = AnchorElement(href: 'data:$type;base64,$base64');
+      a.download = filename;
+      a.click();
+      a.remove();
+    } else if (isDesktop) {
       String? path = await FilePicker.platform
           .saveFile(dialogTitle: desc, fileName: filename);
       if (path != null) await File(path).writeAsBytes(output, flush: true);

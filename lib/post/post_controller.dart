@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:enough_mail/enough_mail.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/io_client.dart';
@@ -12,6 +12,7 @@ import 'package:linkify/linkify.dart';
 import 'package:metadata_fetch/metadata_fetch.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../core/adaptive.dart';
 import '../core/scroll_control.dart';
@@ -71,6 +72,7 @@ class PostState {
   var reply = <PostData>[];
   var selectable = false;
   var error = false;
+  var visible = false;
 }
 
 class PostBody {
@@ -144,7 +146,7 @@ class PostsLoader {
     ref.listen(selectedThreadProvider, (_, threadId) {
       scrollControl.jumpTop();
       _subscription?.cancel();
-      _subscription = Database.postListStream(threadId).listen(
+      _subscription = AppDatabase.get.postChangeStream(threadId).listen(
         (e) async {
           scrollControl.saveLast((i) => getId(i));
           await getPosts(threadId);
@@ -160,9 +162,9 @@ class PostsLoader {
   Future<void> getPosts(String threadId) async {
     _posts.clear();
 
-    var postList = await Database.postList(threadId);
+    var postList = await AppDatabase.get.postList(threadId);
     if (postList.isNotEmpty) {
-      var group = await Database.getGroup(postList.first.groupId);
+      var group = await AppDatabase.get.getGroup(postList.first.groupId);
       if (group == null) throw Exception('Cannot load group data.');
 
       var map = <String, PostData>{};
@@ -305,6 +307,11 @@ class PostsLoader {
     }
   }
 
+  void setVisible(PostData data, VisibilityInfo info) {
+    data.state.visible = info.visibleFraction >= 0.9 || info.size.height > 100;
+    if (data.state.visible) markRead(data);
+  }
+
   Future<void> markRead(PostData data) async {
     if (data.state.error) return;
     if (data.post.isRead) return;
@@ -312,8 +319,9 @@ class PostsLoader {
 
     data.post.isRead = true;
     unread.value--;
-    await Database.updatePost(data.post);
-    await Database.markThreadRead(data.post.threadId, data.post.messageId);
+    await AppDatabase.get
+        .markThreadRead(data.post.threadId, data.post.messageId);
+    await AppDatabase.get.updatePost(data.post);
   }
 
   void nextUnread() {
@@ -400,6 +408,7 @@ class PostsLoader {
     var inside = data.state.inside;
 
     await _loadBodyData(data);
+    if (data.state.visible) markRead(data);
 
     if (data.state.load != PostLoadState.error) {
       ref.read(postImagesProvider.notifier).add(data.body!.images, data.index);
@@ -434,7 +443,12 @@ class PostsLoader {
   void _decompressContent(PostData data) {
     if (data.post.source == null) return;
     var u = Uint8List.fromList(data.post.source!);
-    var text = latin1.decode(gzip.decode(u));
+    String text;
+    if (kIsWeb) {
+      text = latin1.decode(u);
+    } else {
+      text = latin1.decode(gzip.decode(u));
+    }
     data.body = _getContent(data, text);
   }
 
@@ -442,7 +456,7 @@ class PostsLoader {
     if (cancel.value) return;
 
     for (var link in data.body?.links ?? <PostLinkPreview>[]) {
-      if (link.ready) continue;
+      if (!link.enabled || link.ready) continue;
 
       var client = HttpClient();
       client.userAgent = 'TelegramBot (like TwitterBot)';
@@ -515,10 +529,12 @@ class PostsLoader {
           // .where((e) => e.getHeaderContentDisposition() != null)
           .where((e) => !e.mediaType.isMultipart)
           .where((e) => e.mediaType.sub != MediaSubtype.textPlain)
+          .where((e) => e.mediaType.sub != MediaSubtype.textHtml)
           .where((e) => !e.mediaType.isImage)
+          .where((e) => e.decodeFileName() != null)
           .map((e) => PostFile()
             ..data = e.decodeContentBinary()
-            ..filename = e.decodeFileName() ?? 'file.ext')
+            ..filename = e.decodeFileName()!)
           .where((e) => e.data != null)
           .toList();
 
@@ -564,7 +580,7 @@ class PostsLoader {
         .map((e) => e.url)
         .where((e) => const ['http', 'https'].contains(Uri.parse(e).scheme))
         .map((e) => _loadedLinkPreview[e] ??= PostLinkPreview()
-          ..enabled = Settings.linkPreview.val
+          ..enabled = kIsWeb ? false : Settings.linkPreview.val
           ..url = e)
         .toList();
 

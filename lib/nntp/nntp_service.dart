@@ -25,33 +25,29 @@ class NNTPService {
   NNTPService._(this._client, this._serverId, this._host, this._port);
 
   static Future<NNTPService?> fromGroup(int id) async {
-    var group = await Database.getGroup(id);
-    var server = await Database.getServer(group!.serverId);
+    var group = await AppDatabase.get.getGroup(id);
+    var server = await AppDatabase.get.getServer(group!.serverId);
     return await connectAddress(server!.address, server.port);
   }
 
   static Future<NNTPService?> connectAddress(String host, int port) async {
     return await _lock.synchronized(() async {
-      return await _connectAddress(host, port);
+      final key = '$host:$port';
+      var nntp = _pool[key];
+      if (nntp == null) {
+        var client = await NNTP.connect(host, port);
+        if (client != null && client.connected) {
+          var id = await _detectServerId(host, port);
+          nntp = NNTPService._(client, id, host, port);
+          _pool[key] = nntp;
+        }
+      }
+      return nntp;
     });
   }
 
-  static Future<NNTPService?> _connectAddress(String host, int port) async {
-    final key = '$host:$port';
-    var nntp = _pool[key];
-    if (nntp == null) {
-      var client = await NNTP.connect(host, port);
-      if (client != null && client.connected) {
-        var id = await _detectServerId(host, port);
-        nntp = NNTPService._(client, id, host, port);
-        _pool[key] = nntp;
-      }
-    }
-    return nntp;
-  }
-
   static Future<int> _detectServerId(String host, int port) async {
-    var servers = await Database.serverList();
+    var servers = await AppDatabase.get.serverList();
     var check = servers
         .where((server) => server.address == host && server.port == port);
     if (check.isNotEmpty) {
@@ -75,45 +71,33 @@ class NNTPService {
   Future<List<GroupInfo>> getGroupList() async {
     if (!await _checkConnection()) return [];
     return await _nntpLock.synchronized(() async {
-      return await _getGroupList();
+      var ignore = (await AppDatabase.get.groupList(serverId: _serverId))
+          .map((group) => group.name)
+          .toSet();
+      var list = (await _client.list())
+          .where((e) => !ignore.contains(e.name))
+          .map((e) => e..serverId = _serverId)
+          .toList();
+      return list;
     });
   }
 
-  Future<List<GroupInfo>> _getGroupList() async {
-    var ignore = (await Database.groupList(serverId: _serverId))
-        .map((group) => group.name)
-        .toSet();
-    var list = (await _client.list())
-        .where((e) => !ignore.contains(e.name))
-        .map((e) => e..serverId = _serverId)
-        .toList();
-    return list;
-  }
-
-  Future<void> addGroups(List<Group> list) async {
+  Future<List<Group>> addGroups(List<Group> list) async {
     return await _nntpLock.synchronized(() async {
-      return await _addGroups(list);
+      if (_serverId == -1) {
+        _serverId = await AppDatabase.get.addServer(_host, _port);
+      }
+      list = list.map((e) => e..serverId = _serverId).toList();
+      return await AppDatabase.get.addGroups(list);
     });
-  }
-
-  Future<void> _addGroups(List<Group> list) async {
-    if (_serverId == -1) {
-      _serverId = await Database.addServer(_host, _port);
-    }
-    list = list.map((e) => e..serverId = _serverId).toList();
-    await Database.addGroups(list);
   }
 
   Future<({int count, int first, int last})> getGroupRange(int id) async {
     if (!await _checkConnection()) return (count: 0, first: 0, last: 0);
     return await _nntpLock.synchronized(() async {
-      return await _getGroupRange(id);
+      var group = await AppDatabase.get.getGroup(id);
+      return await _client.group(group!.name);
     });
-  }
-
-  Future<({int count, int first, int last})> _getGroupRange(int id) async {
-    var group = await Database.getGroup(id);
-    return await _client.group(group!.name);
   }
 
   Future<String> post(String data) async {
@@ -197,27 +181,27 @@ class NNTPService {
     }).toList();
 
     var result = (threads: threads.length, posts: posts.length);
-    var updates = await Database.getThreads(children.keys.toList());
+    var updates = await AppDatabase.get.getThreads(children.keys.toList());
     updates.forEach(updateChildren);
     threads.addAll(updates);
 
-    await Database.addPosts(posts);
-    await Database.addThreads(threads);
+    await AppDatabase.get.addPosts(posts);
+    await AppDatabase.get.addThreads(threads);
     return result;
   }
 
   Future<String> downloadBody(Post post) async {
     if (!await _checkConnection()) return '';
     return await _nntpLock.synchronized(() async {
-      return await _downloadBody(post);
+      var data = await _client.article(post.messageId);
+      var body = data.join('\r\n');
+      if (kIsWeb) {
+        post.source = Uint8List.fromList(latin1.encode(body));
+      } else {
+        post.source = Uint8List.fromList(gzip.encode(latin1.encode(body)));
+      }
+      AppDatabase.get.updatePost(post);
+      return body;
     });
-  }
-
-  Future<String> _downloadBody(Post post) async {
-    var data = await _client.article(post.messageId);
-    var body = data.join('\r\n');
-    post.source = Uint8List.fromList(gzip.encode(latin1.encode(body)));
-    Database.updatePost(post);
-    return body;
   }
 }
