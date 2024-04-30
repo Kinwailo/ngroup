@@ -153,7 +153,7 @@ class PostsLoader {
 
           _cancel?.value = true;
           _cancel = ValueNotifier(false);
-          loadPostBody(_cancel!);
+          _loadPostBody(_cancel!);
         },
       );
     }, fireImmediately: true);
@@ -331,7 +331,13 @@ class PostsLoader {
     if (data != null) ref.read(postListScrollProvider).scrollTo(data.index);
   }
 
-  void loadPostBody(ValueNotifier cancel) async {
+  void retry() {
+    _cancel?.value = true;
+    _cancel = ValueNotifier(false);
+    _downloadPostBody(_cancel!);
+  }
+
+  void _loadPostBody(ValueNotifier<bool> cancel) async {
     var posts = [..._posts];
     for (var p in posts) {
       _decompressContent(p);
@@ -356,6 +362,11 @@ class PostsLoader {
       }
     }
 
+    _downloadPostBody(cancel);
+  }
+
+  void _downloadPostBody(ValueNotifier<bool> cancel) async {
+    var posts = [..._posts];
     for (var data in posts) {
       await _loadBody(data, cancel);
       if (!data.state.inside) _getLinkPreview(data, cancel);
@@ -396,7 +407,10 @@ class PostsLoader {
         (data.body!.text.length <= Settings.shortReplySize.val);
   }
 
-  Future<void> _loadBody(PostData data, ValueNotifier cancel) async {
+  Future<void> _loadBody(PostData data, ValueNotifier<bool> cancel) async {
+    if (cancel.value) return;
+    if (data.state.error) return;
+
     if (data.state.load == PostLoadState.toOutside) {
       data.state.load = PostLoadState.loaded;
       ref.invalidate(postChangeProvider(data.post.messageId));
@@ -452,7 +466,8 @@ class PostsLoader {
     data.body = _getContent(data, text);
   }
 
-  Future<void> _getLinkPreview(PostData data, ValueNotifier cancel) async {
+  Future<void> _getLinkPreview(
+      PostData data, ValueNotifier<bool> cancel) async {
     if (cancel.value) return;
 
     for (var link in data.body?.links ?? <PostLinkPreview>[]) {

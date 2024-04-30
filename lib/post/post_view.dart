@@ -547,7 +547,17 @@ class PostBodyText extends HookConsumerWidget {
             color: Colors.blueAccent,
             decoration: TextDecoration.underline,
           ),
-          onOpen: (link) => launchUrlString(link.url))
+          onOpen: (link) => launchUrlString(link.url)),
+      if (data.state.error) ...[
+        const TextSpan(text: ' '),
+        TextSpan(
+            text: 'Skip',
+            style: const TextStyle(
+                color: Colors.blueAccent, fontWeight: FontWeight.bold),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => ref.read(postsLoader).retry()),
+        const TextSpan(text: ' '),
+      ]
     ]);
 
     return VisibilityDetector(
