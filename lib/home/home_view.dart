@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -64,8 +65,10 @@ class HomeView extends HookConsumerWidget {
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
             constraints: BoxConstraints(
-                minWidth: 800,
-                maxWidth: Settings.webappMaxWidth.val.toDouble()),
+                minWidth: kIsWeb ? 800 : 0,
+                maxWidth: kIsWeb
+                    ? Settings.webappMaxWidth.val.toDouble()
+                    : double.infinity),
             child: Adaptive.useTwoPaneUI ? const TwoPane() : const SlidePane()),
       ),
     );
