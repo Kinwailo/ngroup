@@ -187,7 +187,7 @@ class PostNext extends HookConsumerWidget {
 
     return AnimatedSwitcher(
       duration: Durations.short4,
-      child: (!showNoMore && next == null) || loader.unread.value > 0
+      child: !showNoMore && (next == null || loader.unread.value > 0)
           ? const SizedBox.shrink()
           : Card(
               key: ValueKey(text),
