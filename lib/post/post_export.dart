@@ -75,7 +75,7 @@ body {
 .quote {
     background: rgb(69, 90, 100);
     margin: 8px;
-    padding: 2px 2px 2px 6px;
+    padding: 1px 1px 3px 6px;
     width: fit-content;
     max-width: 584px;
     white-space: nowrap;
@@ -85,7 +85,7 @@ body {
 
 .quote_content {
     margin-left: 2px;
-    padding: 1px 6px 1px 6px;
+    padding: 3px 6px 3px 6px;
 }
 
 .content {
@@ -97,8 +97,6 @@ body {
 }
 
 .divider {
-    width: 96%;
-    margin-left: 2%;
     margin-top: 8px;
     margin-bottom: 8px;
     border: 0;
@@ -223,51 +221,24 @@ body {
     output.write(exportPostEnd);
   }
 
-  static String _export(List<PostData> posts) {
+  static String _export(Iterable<PostData> posts) {
     var output = StringBuffer();
-    output.write(
-        exportBegin.replaceAll(r'$title$', posts[0].post.subject.noLinebreak));
+    output.write(exportBegin.replaceAll(
+        r'$title$', posts.first.post.subject.noLinebreak));
 
-    if (posts.length == 1) {
-      _exportPost(posts.first, output);
-    } else {
-      for (var p in posts) {
-        if (!p.state.inside) _exportPost(p, output);
-      }
+    _exportPost(posts.first, output);
+    for (var p in posts.skip(1)) {
+      if (!p.state.inside) _exportPost(p, output);
     }
 
     output.write(exportEnd);
     return output.toString();
   }
 
-  static Future<void> save(List<PostData> posts) async {
+  static Future<void> save(Iterable<PostData> posts) async {
     if (posts.isEmpty) return;
     var output = _export(posts);
-    var filename = '${posts[0].post.subject}.html';
+    var filename = '${posts.first.post.subject}.html';
     Adaptive.saveText(output, 'Export to HTML', filename, 'text/html');
   }
-
-  // static Future<void> export(List<PostData> posts) async {
-  //   if (posts.isEmpty) return;
-
-  //   var output = _export(posts);
-
-  //   var fileName = sanitizeFilename('${posts[0].post.subject}.html');
-  //   String? path = await FilePicker.platform
-  //       .saveFile(dialogTitle: 'Export to HTML', fileName: fileName);
-  //   if (path != null) File(path).writeAsString(output, flush: true);
-  // }
-
-  // static Future<void> share(List<PostData> posts) async {
-  //   if (posts.isEmpty) return;
-
-  //   var output = _export(posts);
-
-  //   var fileName = sanitizeFilename('${posts[0].post.subject}.html');
-  //   var temp = await getTemporaryDirectory();
-  //   var file = File('${temp.path}/$fileName');
-  //   await file.writeAsString(output, flush: true);
-  //   await Share.shareXFiles([XFile(file.path, mimeType: 'text/html')]);
-  //   await file.delete();
-  // }
 }

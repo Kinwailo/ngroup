@@ -222,13 +222,12 @@ class PostsLoader {
     return getPostData(id)?.index ?? 0;
   }
 
-  List<PostData> getAllOrSelected() {
+  Iterable<PostData> getAllOrSelected() {
     var filters = ref.read(filterProvider);
     var selected = ref.read(selectedPostProvider);
     return _posts
         .where((e) => selected == '' || e.post.messageId == selected)
-        .where((e) => selected != '' || filters.filterPost(e))
-        .toList();
+        .where((e) => selected != '' || filters.filterPost(e));
   }
 
   PostData? getPrevious(PostData data) {
@@ -277,7 +276,11 @@ class PostsLoader {
   }
 
   void export() {
-    PostExport.save(getAllOrSelected());
+    var selected = ref.read(selectedPostProvider) != '';
+    var posts = getAllOrSelected().map((e) => e
+      ..state.showQuote =
+          selected ? e.parent != null : getQuoteData(e) != null);
+    PostExport.save(posts);
   }
 
   void share() {
