@@ -130,7 +130,8 @@ class ThreadTile extends HookConsumerWidget {
                   ? theme.isNew!
                   : colorScheme.secondaryContainer,
               shape: badges.BadgeShape.square,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius:
+                  BorderRadius.circular(16 * Settings.contentScale.val / 100),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             ),
             badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
@@ -191,43 +192,44 @@ class ThreadTileContent extends HookConsumerWidget {
         tween: ColorTween(begin: color, end: color),
         duration: Durations.short4,
         builder: (context, value, _) {
-          return ListTile(
-            tileColor: value,
-            selectedTileColor: colorScheme.primaryContainer.withOpacity(0.5),
-            selectedColor: colorScheme.onPrimaryContainer,
-            title: MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                  textScaler:
-                      TextScaler.linear(Settings.contentScale.val / 100)),
-              child: Text(
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
+            child: ListTile(
+              minVerticalPadding: 16,
+              tileColor: value,
+              selectedTileColor: colorScheme.primaryContainer.withOpacity(0.5),
+              selectedColor: colorScheme.onPrimaryContainer,
+              title: Text(
                 thread.subject.noLinebreak,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-            ),
-            subtitle: Text.rich(
-              TextSpan(
-                children: [
-                  WidgetSpan(child: ThreadState(data)),
-                  TextSpan(
-                      text: '${thread.from.sender} ',
-                      style: TextStyle(color: theme.sender)),
-                  const WidgetSpan(child: SizedBox(width: 4)),
-                  TextSpan(
-                    text: thread.dateTime.toLocal().string,
-                    style: TextStyle(color: colorScheme.onTertiaryContainer),
-                  ),
-                  const WidgetSpan(child: SizedBox(width: 4)),
-                  if (data.attachment)
-                    const WidgetSpan(child: Icon(Icons.attach_file, size: 16)),
-                ],
+              subtitle: Text.rich(
+                TextSpan(
+                  children: [
+                    WidgetSpan(child: ThreadState(data)),
+                    TextSpan(
+                        text: '${thread.from.sender} ',
+                        style: TextStyle(color: theme.sender)),
+                    const WidgetSpan(child: SizedBox(width: 4)),
+                    TextSpan(
+                      text: thread.dateTime.toLocal().string,
+                      style: TextStyle(color: colorScheme.onTertiaryContainer),
+                    ),
+                    const WidgetSpan(child: SizedBox(width: 4)),
+                    if (data.attachment)
+                      const WidgetSpan(
+                          child: Icon(Icons.attach_file, size: 16)),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textScaler: TextScaler.linear(Settings.contentScale.val / 100),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textScaler: TextScaler.linear(Settings.contentScale.val / 100),
+              selected: thread.messageId == selectedThread,
+              onTap: () => ref.read(threadsLoader).select(data),
             ),
-            selected: thread.messageId == selectedThread,
-            onTap: () => ref.read(threadsLoader).select(data),
           );
         });
   }
