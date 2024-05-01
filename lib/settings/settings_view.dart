@@ -30,9 +30,10 @@ class SettingsView extends ConsumerWidget {
                 if (!Adaptive.isDesktop || Adaptive.forceMobile)
                   PrefsBoolTile(Settings.twoPane),
                 if (kIsWeb) PrefsBoolTile(Settings.disableWebContextMenu),
-                if (kIsWeb) PrefsIntTile(Settings.webappMaxWidth),
+                if (kIsWeb)
+                  PrefsIntTile(Settings.webappMaxWidth, min: 800, step: 50),
                 if (!kIsWeb) PrefsBoolTile(Settings.useHTTPBridge),
-                PrefsIntTile(Settings.contentScale),
+                PrefsIntTile(Settings.contentScale, min: 80, step: 5),
               ],
             ),
             PrefsGroupTile(children: [
@@ -56,14 +57,14 @@ class SettingsView extends ConsumerWidget {
               PrefsEnumTile(Settings.sortMode),
               PrefsEnumTile(Settings.showQuote),
               PrefsBoolTile(Settings.shortReply),
-              PrefsIntTile(Settings.shortReplySize),
+              PrefsIntTile(Settings.shortReplySize, min: 10),
               if (!kIsWeb) PrefsBoolTile(Settings.linkPreview),
               PrefsBoolTile(Settings.smallPreview),
             ]),
             PrefsGroupTile(children: [
-              PrefsIntTile(Settings.attachmentSize),
-              PrefsIntTile(Settings.hideText),
-              PrefsIntTile(Settings.chopQuote),
+              PrefsIntTile(Settings.attachmentSize, min: 1000, step: 1000),
+              PrefsIntTile(Settings.hideText, min: 5),
+              PrefsIntTile(Settings.chopQuote, min: 50, step: 50),
             ]),
             PrefsGroupTile(children: [
               PrefsBoolTile(Settings.unreadOnNext),

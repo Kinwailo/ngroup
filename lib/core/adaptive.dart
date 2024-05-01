@@ -139,9 +139,7 @@ class AdaptivePageView extends HookWidget {
         padding: const EdgeInsets.all(8),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-              maxWidth: Adaptive.useTwoPaneUI
-                  ? 4.0 * Settings.contentScale.val
-                  : double.infinity),
+              maxWidth: Adaptive.useTwoPaneUI ? 400 : double.infinity),
           child: child,
         ),
       ),

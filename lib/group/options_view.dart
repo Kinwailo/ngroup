@@ -43,9 +43,9 @@ class OptionsView extends ConsumerWidget {
               PrefsGroupTile(
                 children: [
                   PrefsBoolTile(d.options.autoRefresh),
-                  PrefsIntTile(d.options.refreshMax),
+                  PrefsIntTile(d.options.refreshMax, min: 100, step: 100),
                   PrefsBoolTile(d.options.askIfMore),
-                  PrefsIntTile(d.options.keepMessage),
+                  PrefsIntTile(d.options.keepMessage, min: 100, step: 100),
                 ],
               ),
               PrefsGroupTile(
