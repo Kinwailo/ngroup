@@ -426,22 +426,26 @@ class PostQuote extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(4)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(' ${data.post.from.sender} ',
-              style: TextStyle(color: theme.sender!.withOpacity(0.8))),
-          Flexible(
-            child: Card(
-              margin: const EdgeInsets.all(1),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(4)),
+      child: MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(' ${data.post.from.sender} ',
+                style: TextStyle(color: theme.sender!.withOpacity(0.8))),
+            Flexible(
+              child: Card(
+                margin: const EdgeInsets.all(1),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(4)),
+                ),
+                child: Text(' $quote ',
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
-              child: Text(' $quote ',
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
