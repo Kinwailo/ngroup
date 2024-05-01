@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:synchronized/synchronized.dart';
 
@@ -171,7 +172,7 @@ class NNTPService {
     }).toList();
 
     var postsMap = {for (var e in posts) e.messageId: e};
-    for (var p in posts) {
+    for (var p in posts.sortedBy<num>((e) => e.number)) {
       if (p.threadId != p.messageId) {
         var parent = postsMap[p.threadId];
         parent ??= await AppDatabase.get.getPost(p.threadId);
