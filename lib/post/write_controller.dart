@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:enough_mail/enough_mail.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:universal_io/io.dart';
+import 'package:image/image.dart' as img;
 
 import '../database/database.dart';
 import '../group/group_controller.dart';
@@ -17,8 +19,17 @@ import 'post_controller.dart';
 
 final writeController = Provider<WriteController>(WriteController.new);
 
+class ImageData {
+  ImageData(this.info, this.bytes);
+  img.DecodeInfo? info;
+  int scale = 5;
+  Uint8List? bytes;
+}
+
 class WriteController {
   final Ref ref;
+
+  final scaleList = [0.25, 0.33, 0.50, 0.66, 0.75, 1.00];
 
   var name = TextEditingController();
   var email = TextEditingController();
@@ -33,7 +44,11 @@ class WriteController {
   var enableQuote = ValueNotifier(true);
   var references = <String>[];
   var sendable = ValueNotifier(false);
+
   var files = ValueNotifier(<PlatformFile>[]);
+  var selectedFile = ValueNotifier<PlatformFile?>(null);
+  var imageData = <PlatformFile, ImageData>{};
+  var resizing = ValueNotifier(false);
 
   var rawQuote = '';
 
@@ -59,7 +74,8 @@ class WriteController {
   void _updateSendable() {
     sendable.value = name.text.isNotEmpty &&
         email.text.isNotEmpty &&
-        subject.text.isNotEmpty;
+        subject.text.isNotEmpty &&
+        !resizing.value;
   }
 
   void _setGroupIdentity(int groupId) async {
@@ -102,6 +118,7 @@ class WriteController {
     references =
         data == null ? [] : [...data.post.references, data.post.messageId];
     files.value = [];
+    selectedFile.value = null;
 
     enableSignature.value = true;
     enableQuote.value = true;
@@ -124,11 +141,50 @@ class WriteController {
         .pickFiles(allowMultiple: true, type: FileType.image, withData: true);
     if (result != null) {
       files.value = [...files.value, ...result.files];
+      imageData.addAll({
+        for (var file in result.files)
+          file: ImageData(
+              img.findDecoderForNamedImage(file.name)?.startDecode(file.bytes!),
+              file.bytes)
+      });
+      selectedFile.value = files.value.first;
     }
   }
 
-  void removeFile(PlatformFile file) {
+  void removeFile(PlatformFile? file) {
+    if (file == null) return;
+    imageData.remove(file);
     files.value = files.value.where((e) => e != file).toList();
+    if (selectedFile.value == file) {
+      selectedFile.value = files.value.firstOrNull;
+    }
+  }
+
+  Future<void> setImageScale(PlatformFile file, int scale) async {
+    if (scale == 5) {
+      imageData[file]!.scale = scale;
+      imageData[file]!.bytes = file.bytes;
+      return;
+    }
+    var width = img
+        .findDecoderForNamedImage(file.name)
+        ?.startDecode(file.bytes!)
+        ?.width;
+    if (width == null) return;
+    width = (width * scaleList[scale]).toInt();
+
+    var cmd = img.Command()
+      ..decodeNamedImage(file.name, file.bytes!)
+      ..copyResize(width: width, interpolation: img.Interpolation.cubic)
+      ..encodeJpg(quality: 85);
+    imageData[file]!.scale = scale;
+    files.value = [...files.value];
+
+    resizing.value = true;
+    _updateSendable();
+    imageData[file]!.bytes = await cmd.getBytesThread();
+    resizing.value = false;
+    _updateSendable();
   }
 
   Future<void> send(BuildContext context,
@@ -172,7 +228,9 @@ class WriteController {
         ..subject = subject.text
         ..text = content;
       for (var e in files.value) {
-        builder.addBinary(e.bytes!, MediaType.guessFromFileName(e.name),
+        var bytes = imageData[e]?.bytes;
+        if (bytes == null) continue;
+        builder.addBinary(bytes, MediaType.guessFromFileName(e.name),
             filename: MailCodec.base64.encodeHeader(e.name));
       }
       var message = builder.buildMimeMessage();
