@@ -102,19 +102,23 @@ class ThreadBlockedTile extends HookConsumerWidget {
     var colorScheme = Theme.of(context).colorScheme;
     return CustomPaint(
       painter: BlockPainter(colorScheme.surfaceTint, Colors.yellow),
-      child: InkWell(
-        onTap: () => ref.read(threadsLoader).select(data),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
-          child: Text.rich(TextSpan(children: [
-            WidgetSpan(child: ThreadState(data)),
-            _senderTextSpan(context, data),
-            const WidgetSpan(child: SizedBox(width: 4)),
-            TextSpan(
-              text: data.thread.dateTime.toLocal().string,
-              style: TextStyle(color: colorScheme.onTertiaryContainer),
-            ),
-          ])),
+      child: MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
+        child: InkWell(
+          onTap: () => ref.read(threadsLoader).select(data),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
+            child: Text.rich(TextSpan(children: [
+              WidgetSpan(child: ThreadState(data)),
+              _senderTextSpan(context, data),
+              const WidgetSpan(child: SizedBox(width: 4)),
+              TextSpan(
+                text: data.thread.dateTime.toLocal().string,
+                style: TextStyle(color: colorScheme.onTertiaryContainer),
+              ),
+            ])),
+          ),
         ),
       ),
     );
