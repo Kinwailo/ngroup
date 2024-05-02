@@ -83,7 +83,7 @@ class Settings {
     'useHTTPBridge',
     false,
     _storage,
-    description: 'Use HTTP Bridge',
+    description: 'Use HTTP bridge',
   );
 
   static var contentScale = PrefsValue(
