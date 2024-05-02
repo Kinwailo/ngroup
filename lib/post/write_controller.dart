@@ -22,14 +22,15 @@ final writeController = Provider<WriteController>(WriteController.new);
 class ImageData {
   ImageData(this.info, this.bytes);
   img.DecodeInfo? info;
-  int scale = 5;
+  int scale = WriteController.scaleOriginal;
   Uint8List? bytes;
 }
 
 class WriteController {
   final Ref ref;
 
-  final scaleList = [0.25, 0.33, 0.50, 0.66, 0.75, 1.00];
+  static const scaleList = [0.25, 0.33, 0.50, 0.66, 0.75, 1.00, 1.00];
+  static const scaleOriginal = 6;
 
   var name = TextEditingController();
   var email = TextEditingController();
@@ -161,7 +162,7 @@ class WriteController {
   }
 
   Future<void> setImageScale(PlatformFile file, int scale) async {
-    if (scale == 5) {
+    if (scale == WriteController.scaleOriginal) {
       imageData[file]!.scale = scale;
       imageData[file]!.bytes = file.bytes;
       return;
@@ -175,7 +176,7 @@ class WriteController {
 
     var cmd = img.Command()
       ..decodeNamedImage(file.name, file.bytes!)
-      ..copyResize(width: width, interpolation: img.Interpolation.cubic)
+      ..copyResize(width: width, interpolation: img.Interpolation.linear)
       ..encodeJpg(quality: 85);
     imageData[file]!.scale = scale;
     files.value = [...files.value];

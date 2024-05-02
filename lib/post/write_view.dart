@@ -231,12 +231,14 @@ class WriteAttachment extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var controller = ref.read(writeController);
     var selected = controller.selectedFile.value;
-    final scale = useState(5);
+    final scale = useState(WriteController.scaleOriginal);
     useListenable(controller.files);
     useListenable(controller.selectedFile);
     useListenable(controller.resizing);
-    useValueChanged(selected,
-        (_, __) => scale.value = controller.imageData[selected]?.scale ?? 5);
+    useValueChanged(
+        selected,
+        (_, __) => scale.value = controller.imageData[selected]?.scale ??
+            WriteController.scaleOriginal);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(8),
@@ -267,18 +269,22 @@ class WriteAttachment extends HookConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             ToggleButtons(
-                              isSelected:
-                                  List.generate(6, (i) => i == scale.value),
+                              isSelected: List.generate(
+                                  WriteController.scaleOriginal + 1,
+                                  (i) => i == scale.value),
                               onPressed: (i) {
                                 scale.value = i;
                                 controller.setImageScale(selected, i);
                               },
                               constraints: const BoxConstraints(
                                   minWidth: 46, minHeight: 24),
-                              children: controller.scaleList
-                                  .map((e) =>
-                                      Text('${(e * 100).toStringAsFixed(0)}%'))
-                                  .toList(),
+                              children: [
+                                ...WriteController.scaleList
+                                    .take(WriteController.scaleOriginal)
+                                    .map((e) => Text(
+                                        '${(e * 100).toStringAsFixed(0)}%')),
+                                const Text('*'),
+                              ],
                             ),
                             const SizedBox(width: 8),
                             ToggleButtons(
@@ -321,7 +327,8 @@ class WriteFile extends HookConsumerWidget {
     var controller = ref.read(writeController);
 
     var data = controller.imageData[file];
-    var scale = controller.scaleList[data?.scale ?? 5];
+    var scale =
+        WriteController.scaleList[data?.scale ?? WriteController.scaleOriginal];
     var width = data?.info?.width ?? 0;
     var height = data?.info?.height ?? 0;
     var size = data?.bytes?.lengthInBytes ?? 0;
