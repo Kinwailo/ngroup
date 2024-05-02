@@ -264,7 +264,8 @@ class PostsLoader {
   void invalidatePost(PostData? data) {
     if (data == null) return;
     var filters = ref.read(filterProvider);
-    if (data.state.inside && filters.filterPost(data.parent!)) {
+    var blocked = Settings.blockSenders.val.contains(data.parent?.post.from);
+    if (data.state.inside && !blocked && filters.filterPost(data.parent!)) {
       data = data.parent!;
     }
     ref.invalidate(postChangeProvider(data.post.messageId));

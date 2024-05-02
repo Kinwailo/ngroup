@@ -1,9 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+import '../core/block_painter.dart';
 import '../core/string_utils.dart';
 import '../core/datetime_utils.dart';
 import '../core/theme.dart';
@@ -49,6 +51,7 @@ class ThreadView extends HookConsumerWidget {
     useAutomaticKeepAlive();
     useListenable(Listenable.merge(
         [filters, ...filters.filters.where((e) => e.useInThread)]));
+    useListenable(Settings.blockSenders);
 
     return ScrollablePositionedList.builder(
       key: ValueKey(threads),
@@ -61,9 +64,59 @@ class ThreadView extends HookConsumerWidget {
         if (groupId == -1) return const ListTile(title: Text('No group'));
         if (filtered.isEmpty) return const ListTile(title: Text('No post'));
         if (index >= filtered.length) return const SizedBox(height: 60);
-        var thread = filtered[index];
-        return ThreadTile(key: ValueKey(thread.thread.messageId), thread);
+        var data = filtered[index];
+        return Settings.blockSenders.val.contains(data.thread.from)
+            ? ThreadBlockedTile(
+                key: ValueKey('${data.thread.messageId} Blocked'), data)
+            : ThreadTile(key: ValueKey(data.thread.messageId), data);
       },
+    );
+  }
+}
+
+TextSpan _senderTextSpan(BuildContext context, ThreadData data,
+    {double opacity = 1.0}) {
+  var theme = Theme.of(context).extension<NGroupTheme>()!;
+  return TextSpan(
+    text: '${data.thread.from.sender} ',
+    style: TextStyle(color: theme.sender?.withOpacity(opacity)),
+    recognizer: TapGestureRecognizer()
+      ..onTap = () {
+        if (Settings.blockSenders.val.contains(data.thread.from)) {
+          Settings.blockSenders.val.remove(data.thread.from);
+        } else {
+          Settings.blockSenders.val.add(data.thread.from);
+        }
+        Settings.blockSenders.update();
+      },
+  );
+}
+
+class ThreadBlockedTile extends HookConsumerWidget {
+  const ThreadBlockedTile(this.data, {super.key});
+
+  final ThreadData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    var colorScheme = Theme.of(context).colorScheme;
+    return CustomPaint(
+      painter: BlockPainter(colorScheme.surfaceTint, Colors.yellow),
+      child: InkWell(
+        onTap: () => ref.read(threadsLoader).select(data),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
+          child: Text.rich(TextSpan(children: [
+            WidgetSpan(child: ThreadState(data)),
+            _senderTextSpan(context, data),
+            const WidgetSpan(child: SizedBox(width: 4)),
+            TextSpan(
+              text: data.thread.dateTime.toLocal().string,
+              style: TextStyle(color: colorScheme.onTertiaryContainer),
+            ),
+          ])),
+        ),
+      ),
     );
   }
 }
@@ -152,9 +205,16 @@ class ThreadState extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var theme = Theme.of(context).extension<NGroupTheme>()!;
     var thread = data.thread;
+    var blocked = Settings.blockSenders.val.contains(data.thread.from);
 
     Widget widget = const SizedBox.shrink();
-    if (thread.isRead) {
+    if (blocked) {
+      widget = Padding(
+        padding: const EdgeInsets.only(right: 4, top: 2, bottom: 1),
+        child: Icon(Icons.block,
+            size: 16, color: thread.isNew ? theme.isNew! : theme.isRead!),
+      );
+    } else if (thread.isRead) {
       widget = Padding(
         padding: const EdgeInsets.only(right: 4, top: 2, bottom: 1),
         child: Icon(Icons.check,
@@ -178,7 +238,6 @@ class ThreadTileContent extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
-    var theme = Theme.of(context).extension<NGroupTheme>()!;
 
     var thread = data.thread;
     var selectedThread = ref.watch(selectedThreadProvider);
@@ -209,9 +268,7 @@ class ThreadTileContent extends HookConsumerWidget {
                 TextSpan(
                   children: [
                     WidgetSpan(child: ThreadState(data)),
-                    TextSpan(
-                        text: '${thread.from.sender} ',
-                        style: TextStyle(color: theme.sender)),
+                    _senderTextSpan(context, data),
                     const WidgetSpan(child: SizedBox(width: 4)),
                     TextSpan(
                       text: thread.dateTime.toLocal().string,

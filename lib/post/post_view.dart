@@ -10,6 +10,7 @@ import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../core/adaptive.dart';
+import '../core/block_painter.dart';
 import '../core/string_utils.dart';
 import '../core/datetime_utils.dart';
 import '../core/theme.dart';
@@ -217,16 +218,17 @@ class PostTile extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    var colorScheme = Theme.of(context).colorScheme;
-    var theme = Theme.of(context).extension<NGroupTheme>()!;
-
     var postId = data.post.messageId;
     ref.watch(postChangeProvider(postId));
     var selected = ref.read(selectedPostProvider) == postId;
     var state = data.state;
+    var blocked = Settings.blockSenders.val.contains(data.parent?.post.from);
+    var blocked2 = Settings.blockSenders.val.contains(data.post.from);
 
     var filters = ref.read(filterProvider);
     var hide = (state.inside &&
+            !blocked &&
+            !blocked2 &&
             filters.filterPost(data.parent!) &&
             !(selected && CaptureView.of(context))) ||
         state.load == PostLoadState.waiting ||
@@ -234,6 +236,7 @@ class PostTile extends HookConsumerWidget {
 
     useListenable(Listenable.merge(
         [filters, ...filters.filters.where((e) => e.useInPost)]));
+    useListenable(Settings.blockSenders);
 
     return AnimatedCrossFade(
       duration: Durations.short4,
@@ -241,85 +244,134 @@ class PostTile extends HookConsumerWidget {
       crossFadeState:
           hide ? CrossFadeState.showFirst : CrossFadeState.showSecond,
       firstChild: const SizedBox.shrink(),
-      secondChild: Padding(
-        padding: const EdgeInsets.all(4),
-        child: GestureDetector(
-          onTap: () => ref.read(postsLoader).select(data),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.all(Radius.circular(8)),
-              border: Border.all(
-                  style: selected && !CaptureView.of(context)
-                      ? BorderStyle.solid
-                      : BorderStyle.none,
-                  color: colorScheme.outline,
-                  width: 2,
-                  strokeAlign: BorderSide.strokeAlignCenter),
-            ),
-            child: Column(
+      secondChild: Settings.blockSenders.val.contains(data.post.from)
+          ? PostBlockedTile(
+              key: ValueKey('${data.post.messageId} Blocked'), data)
+          : PostNormalTile(
+              key: ValueKey('${data.post.messageId} Normal'), data),
+    );
+  }
+}
+
+List<Widget> _tileHeader(
+    BuildContext context, ColorScheme colorScheme, PostData data) {
+  return [
+    Text.rich(
+      TextSpan(
+        children: [
+          WidgetSpan(child: PostState(data)),
+          _senderTextSpan(context, data),
+          const WidgetSpan(child: SizedBox(width: 4)),
+          TextSpan(
+            text: data.post.dateTime.toLocal().string,
+            style: TextStyle(color: colorScheme.onTertiaryContainer),
+          ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textScaler: TextScaler.linear(Settings.contentScale.val / 100),
+    ),
+    const Spacer(),
+    Text.rich(
+      TextSpan(text: '#${data.index + 1}'),
+      textScaler: TextScaler.linear(Settings.contentScale.val / 100),
+    ),
+  ];
+}
+
+class PostBlockedTile extends HookConsumerWidget {
+  const PostBlockedTile(this.data, {super.key});
+
+  final PostData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    var colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.all(5),
+      child: Card(
+        elevation: 1,
+        margin: const EdgeInsets.all(0),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(4)),
+        ),
+        child: CustomPaint(
+          painter: BlockPainter(colorScheme.surfaceTint, Colors.yellow),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
+            child: Row(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Card(
-                  color: colorScheme.tertiaryContainer,
-                  elevation: 1,
-                  margin: const EdgeInsets.all(0),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(8),
-                        topRight: Radius.circular(8)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              WidgetSpan(child: PostState(data)),
-                              TextSpan(
-                                  text: '${data.post.from.sender} ',
-                                  style: TextStyle(color: theme.sender)),
-                              const WidgetSpan(child: SizedBox(width: 4)),
-                              TextSpan(
-                                text: data.post.dateTime.toLocal().string,
-                                style: TextStyle(
-                                    color: colorScheme.onTertiaryContainer),
-                              ),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textScaler: TextScaler.linear(
-                              Settings.contentScale.val / 100),
-                        ),
-                        const Spacer(),
-                        Text.rich(
-                          TextSpan(text: '#${data.index + 1}'),
-                          textScaler: TextScaler.linear(
-                              Settings.contentScale.val / 100),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Card(
-                  elevation: 1,
-                  margin: const EdgeInsets.all(0),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(8),
-                        bottomRight: Radius.circular(8)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: PostBody(data),
-                  ),
-                ),
-              ],
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _tileHeader(context, colorScheme, data),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PostNormalTile extends HookConsumerWidget {
+  const PostNormalTile(this.data, {super.key});
+
+  final PostData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    var colorScheme = Theme.of(context).colorScheme;
+    var selected = ref.read(selectedPostProvider) == data.post.messageId;
+    return Padding(
+      padding: const EdgeInsets.all(4),
+      child: GestureDetector(
+        onTap: () => ref.read(postsLoader).select(data),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.all(Radius.circular(8)),
+            border: Border.all(
+                style: selected && !CaptureView.of(context)
+                    ? BorderStyle.solid
+                    : BorderStyle.none,
+                color: colorScheme.outline,
+                width: 2,
+                strokeAlign: BorderSide.strokeAlignCenter),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Card(
+                color: colorScheme.tertiaryContainer,
+                elevation: 1,
+                margin: const EdgeInsets.all(0),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _tileHeader(context, colorScheme, data),
+                  ),
+                ),
+              ),
+              Card(
+                elevation: 1,
+                margin: const EdgeInsets.all(0),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(8),
+                      bottomRight: Radius.circular(8)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: PostBody(data),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -336,11 +388,18 @@ class PostState extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var theme = Theme.of(context).extension<NGroupTheme>()!;
     var state = data.state;
+    var blocked = Settings.blockSenders.val.contains(data.post.from);
 
     Widget widget = const SizedBox.shrink();
-    if (CaptureView.of(context)) return widget;
+    if (CaptureView.of(context) && !blocked) return widget;
 
-    if (state.isRead) {
+    if (blocked) {
+      widget = Padding(
+        padding: const EdgeInsets.only(right: 4, top: 2, bottom: 1),
+        child: Icon(Icons.block,
+            size: 16, color: state.isNew ? theme.isNew! : theme.isRead!),
+      );
+    } else if (state.isRead) {
       widget = Padding(
         padding: const EdgeInsets.only(right: 4, top: 2, bottom: 1),
         child: Icon(Icons.check,
@@ -356,6 +415,24 @@ class PostState extends ConsumerWidget {
   }
 }
 
+TextSpan _senderTextSpan(BuildContext context, PostData data,
+    {double opacity = 1.0}) {
+  var theme = Theme.of(context).extension<NGroupTheme>()!;
+  return TextSpan(
+    text: '${data.post.from.sender} ',
+    style: TextStyle(color: theme.sender?.withOpacity(opacity)),
+    recognizer: TapGestureRecognizer()
+      ..onTap = () {
+        if (Settings.blockSenders.val.contains(data.post.from)) {
+          Settings.blockSenders.val.remove(data.post.from);
+        } else {
+          Settings.blockSenders.val.add(data.post.from);
+        }
+        Settings.blockSenders.update();
+      },
+  );
+}
+
 class PostBody extends ConsumerWidget {
   const PostBody(this.data, {super.key});
 
@@ -366,8 +443,10 @@ class PostBody extends ConsumerWidget {
     var body = data.body;
     var state = data.state;
     var filters = ref.read(filterProvider);
+    var blocked = Settings.blockSenders.val.contains(data.parent?.post.from);
     var quote = ref.read(postsLoader).getQuoteData(data);
-    if (CaptureView.of(context) && ref.read(selectedPostProvider) != '') {
+    if (blocked ||
+        (CaptureView.of(context) && ref.read(selectedPostProvider) != '')) {
       quote = data.parent;
     }
     var quoteBody = [
@@ -389,9 +468,12 @@ class PostBody extends ConsumerWidget {
         if (body.links.any((e) => e.enabled)) PostLinkPreviews(data),
         if (body.images.isNotEmpty) PostImages(data),
         if (body.files.isNotEmpty) PostFiles(data),
-        if (state.reply.where((e) => e.state.inside).any((e) =>
-            e.state.load == PostLoadState.loading ||
-            (e.body != null && filters.filterPost(e))))
+        if (state.reply
+            .where((e) => e.state.inside)
+            .where((e) => !Settings.blockSenders.val.contains(e.post.from))
+            .any((e) =>
+                e.state.load == PostLoadState.loading ||
+                (e.body != null && filters.filterPost(e))))
           PostShortReply(data),
       ],
     ];
@@ -417,11 +499,14 @@ class PostQuote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var colorScheme = Theme.of(context).colorScheme;
     var theme = Theme.of(context).extension<NGroupTheme>()!;
+    var blocked = Settings.blockSenders.val.contains(data.post.from);
     var quote = data.body?.text.noLinebreak ?? '';
     if (quote.isEmpty) quote = 'No content.';
+    if (blocked) quote = 'Blocked';
     return Card(
-      color: theme.quote,
+      color: blocked ? null : theme.quote,
       shadowColor: Color.lerp(theme.quote, Colors.black, 0.8),
       elevation: 1,
       margin: const EdgeInsets.only(top: 4, bottom: 4),
@@ -431,22 +516,31 @@ class PostQuote extends StatelessWidget {
       child: MediaQuery(
         data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(' ${data.post.from.sender} ',
-                style: TextStyle(color: theme.sender!.withOpacity(0.8))),
-            Flexible(
-              child: Card(
-                margin: const EdgeInsets.all(1),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(4)),
-                ),
-                child: Text(' $quote ',
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+        child: CustomPaint(
+          painter: blocked
+              ? BlockPainter(colorScheme.surfaceTint, Colors.yellow)
+              : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Text.rich(TextSpan(children: [
+                  _senderTextSpan(context, data, opacity: 0.8),
+                ])),
               ),
-            ),
-          ],
+              Flexible(
+                child: Card(
+                  margin: const EdgeInsets.all(1),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(4)),
+                  ),
+                  child: Text(' $quote ',
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -466,7 +560,10 @@ class PostShortReply extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ...state.reply.where((e) => e.state.inside && e.body != null).map(
+        ...state.reply
+            .where((e) => e.state.inside && e.body != null)
+            .where((e) => !Settings.blockSenders.val.contains(e.post.from))
+            .map(
           (e) {
             var selected = ref.read(selectedPostProvider) == e.post.messageId;
             return AnimatedCrossFade(
@@ -522,7 +619,6 @@ class PostBodyText extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
-    var theme = Theme.of(context).extension<NGroupTheme>()!;
     var filters = ref.read(filterProvider);
 
     final more = useState(false);
@@ -532,13 +628,14 @@ class PostBodyText extends HookConsumerWidget {
     if (short) text = text.noLinebreak;
     text += ' ';
     var hide = Settings.hideText.val;
+    var blocked = Settings.blockSenders.val.contains(data.parent?.post.from);
 
     var span = TextSpan(children: [
-      if (data.state.inside && filters.filterPost(data.parent!)) ...[
+      if (data.state.inside &&
+          !blocked &&
+          filters.filterPost(data.parent!)) ...[
         WidgetSpan(child: PostState(data)),
-        TextSpan(
-            text: '${data.post.from.sender} ',
-            style: TextStyle(color: theme.sender)),
+        _senderTextSpan(context, data),
       ],
       if (data.state.error)
         WidgetSpan(

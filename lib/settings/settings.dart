@@ -153,6 +153,14 @@ class Settings {
     prompt: 'Enter the regex pattern',
   );
 
+  static var blockSenders = PrefsValue(
+    'blockSenders',
+    [],
+    _storage,
+    description: 'Block Senders',
+    prompt: 'Enter the sender',
+  );
+
   static var sortMode = PrefsEnum(
     'sortMode',
     SortMode.hierarchy,
