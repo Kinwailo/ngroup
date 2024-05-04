@@ -65,10 +65,7 @@ class ThreadView extends HookConsumerWidget {
         if (filtered.isEmpty) return const ListTile(title: Text('No post'));
         if (index >= filtered.length) return const SizedBox(height: 60);
         var data = filtered[index];
-        return Settings.blockSenders.val.contains(data.thread.from)
-            ? ThreadBlockedTile(
-                key: ValueKey('${data.thread.messageId} Blocked'), data)
-            : ThreadTile(key: ValueKey(data.thread.messageId), data);
+        return ThreadTile(key: ValueKey(data.thread.messageId), data);
       },
     );
   }
@@ -92,6 +89,33 @@ TextSpan _senderTextSpan(BuildContext context, ThreadData data,
   );
 }
 
+class ThreadTile extends HookConsumerWidget {
+  const ThreadTile(this.data, {super.key});
+
+  final ThreadData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    useListenable(Settings.contentScale);
+    return AnimatedCrossFade(
+      duration: Durations.short2,
+      crossFadeState:
+          !data.match ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+      firstChild: const SizedBox.shrink(),
+      secondChild: Visibility(
+        maintainState: true,
+        maintainAnimation: true,
+        visible: data.match,
+        child: Settings.blockSenders.val.contains(data.thread.from)
+            ? ThreadBlockedTile(
+                key: ValueKey('${data.thread.messageId} Blocked'), data)
+            : ThreadNormalTile(
+                key: ValueKey('${data.thread.messageId} Normal'), data),
+      ),
+    );
+  }
+}
+
 class ThreadBlockedTile extends HookConsumerWidget {
   const ThreadBlockedTile(this.data, {super.key});
 
@@ -107,17 +131,24 @@ class ThreadBlockedTile extends HookConsumerWidget {
             textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
         child: InkWell(
           onTap: () => ref.read(threadsLoader).select(data),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
-            child: Text.rich(TextSpan(children: [
-              WidgetSpan(child: ThreadState(data)),
-              _senderTextSpan(context, data),
-              const WidgetSpan(child: SizedBox(width: 4)),
-              TextSpan(
-                text: data.thread.dateTime.toLocal().string,
-                style: TextStyle(color: colorScheme.onTertiaryContainer),
+          child: Row(
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
+                child: Text.rich(
+                  TextSpan(children: [
+                    WidgetSpan(child: ThreadState(data)),
+                    _senderTextSpan(context, data),
+                    const WidgetSpan(child: SizedBox(width: 4)),
+                    TextSpan(
+                      text: data.thread.dateTime.toLocal().string,
+                      style: TextStyle(color: colorScheme.onTertiaryContainer),
+                    ),
+                  ]),
+                ),
               ),
-            ])),
+            ],
           ),
         ),
       ),
@@ -125,8 +156,8 @@ class ThreadBlockedTile extends HookConsumerWidget {
   }
 }
 
-class ThreadTile extends HookConsumerWidget {
-  const ThreadTile(this.data, {super.key});
+class ThreadNormalTile extends HookConsumerWidget {
+  const ThreadNormalTile(this.data, {super.key});
 
   final ThreadData data;
 
@@ -141,60 +172,46 @@ class ThreadTile extends HookConsumerWidget {
       countText = '${thread.totalCount}';
     }
 
-    useListenable(Settings.contentScale);
-
-    return AnimatedCrossFade(
-      duration: Durations.short2,
-      crossFadeState:
-          !data.match ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-      firstChild: const SizedBox.shrink(),
-      secondChild: Visibility(
-        maintainState: true,
-        maintainAnimation: true,
-        visible: data.match,
-        child: Opacity(
-          opacity: thread.unreadCount == 0 ? 0.5 : 1.0,
-          child: badges.Badge(
-            ignorePointer: true,
-            showBadge: data.match,
-            position: badges.BadgePosition.topEnd(top: 22, end: 10),
-            badgeContent: Text.rich(
+    return Opacity(
+      opacity: thread.unreadCount == 0 ? 0.5 : 1.0,
+      child: badges.Badge(
+        ignorePointer: true,
+        showBadge: data.match,
+        position: badges.BadgePosition.topEnd(top: 22, end: 10),
+        badgeContent: Text.rich(
+          TextSpan(
+            children: [
+              if (thread.newCount > 0 &&
+                  thread.newCount != thread.unreadCount &&
+                  thread.newCount != thread.totalCount)
+                WidgetSpan(
+                    child: Padding(
+                  padding: const EdgeInsets.only(right: 4, top: 2, bottom: 3),
+                  child: Icon(Icons.circle, size: 12, color: theme.isNew!),
+                )),
               TextSpan(
-                children: [
-                  if (thread.newCount > 0 &&
-                      thread.newCount != thread.unreadCount &&
-                      thread.newCount != thread.totalCount)
-                    WidgetSpan(
-                        child: Padding(
-                      padding:
-                          const EdgeInsets.only(right: 4, top: 2, bottom: 3),
-                      child: Icon(Icons.circle, size: 12, color: theme.isNew!),
-                    )),
-                  TextSpan(
-                    text: countText,
-                    style: TextStyle(color: colorScheme.onSecondaryContainer),
-                  ),
-                ],
+                text: countText,
+                style: TextStyle(color: colorScheme.onSecondaryContainer),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textScaler: TextScaler.linear(Settings.contentScale.val / 100),
-            ),
-            badgeStyle: badges.BadgeStyle(
-              badgeColor: (thread.newCount > 0 &&
-                          thread.newCount == thread.unreadCount) ||
+            ],
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textScaler: TextScaler.linear(Settings.contentScale.val / 100),
+        ),
+        badgeStyle: badges.BadgeStyle(
+          badgeColor:
+              (thread.newCount > 0 && thread.newCount == thread.unreadCount) ||
                       thread.newCount == thread.totalCount
                   ? theme.isNew!
                   : colorScheme.secondaryContainer,
-              shape: badges.BadgeShape.square,
-              borderRadius:
-                  BorderRadius.circular(16 * Settings.contentScale.val / 100),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            ),
-            badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
-            child: ThreadTileContent(data),
-          ),
+          shape: badges.BadgeShape.square,
+          borderRadius:
+              BorderRadius.circular(16 * Settings.contentScale.val / 100),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         ),
+        badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
+        child: ThreadTileContent(data),
       ),
     );
   }
