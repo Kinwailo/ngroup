@@ -246,29 +246,28 @@ class WriteAttachment extends HookConsumerWidget {
       original.value = controller.imageData[selected]?.original ?? true;
       hqResize.value = controller.imageData[selected]?.hqResize ?? false;
     });
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Center(
-                  child: Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: controller.files.value
-                        .map((e) => WriteFile(e))
-                        .toList(),
-                  ),
-                ),
-                if (controller.files.value.isNotEmpty) const Divider(),
-                if (selected != null)
-                  MediaQuery(
-                    data: MediaQuery.of(context)
-                        .copyWith(textScaler: TextScaler.noScaling),
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Center(
                     child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: controller.files.value
+                          .map((e) => WriteFile(e))
+                          .toList(),
+                    ),
+                  ),
+                  if (controller.files.value.isNotEmpty) const Divider(),
+                  if (selected != null)
+                    Wrap(
                       spacing: 4,
                       runSpacing: 4,
                       children: [
@@ -324,18 +323,18 @@ class WriteAttachment extends HookConsumerWidget {
                         )
                       ],
                     ),
-                  ),
-              ],
-            ),
-            Align(
-              alignment: AlignmentDirectional.topEnd,
-              child: IconButton(
-                splashRadius: 20,
-                icon: const Icon(Icons.attach_file),
-                onPressed: controller.addFile,
+                ],
               ),
-            ),
-          ],
+              Align(
+                alignment: AlignmentDirectional.topEnd,
+                child: IconButton(
+                  splashRadius: 20,
+                  icon: const Icon(Icons.attach_file),
+                  onPressed: controller.addFile,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
