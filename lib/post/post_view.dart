@@ -300,10 +300,13 @@ class PostBlockedTile extends HookConsumerWidget {
           painter: BlockPainter(colorScheme.surfaceTint, Colors.yellow),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _tileHeader(context, colorScheme, data),
+            child: Opacity(
+              opacity: 0.8,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _tileHeader(context, colorScheme, data),
+              ),
             ),
           ),
         ),
@@ -397,7 +400,12 @@ class PostState extends ConsumerWidget {
       widget = Padding(
         padding: const EdgeInsets.only(right: 4, top: 2, bottom: 1),
         child: Icon(Icons.block,
-            size: 16, color: state.isNew ? theme.isNew! : theme.isRead!),
+            size: 16,
+            color: state.isNew
+                ? theme.isNew!
+                : state.isRead
+                    ? theme.isRead!
+                    : theme.sender!),
       );
     } else if (state.isRead) {
       widget = Padding(
@@ -523,11 +531,14 @@ class PostQuote extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: Text.rich(TextSpan(children: [
-                  _senderTextSpan(context, data, opacity: 0.8),
-                ])),
+              Opacity(
+                opacity: blocked ? 0.8 : 1.0,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Text.rich(TextSpan(children: [
+                    _senderTextSpan(context, data, opacity: 0.8),
+                  ])),
+                ),
               ),
               Flexible(
                 child: Card(
@@ -535,8 +546,11 @@ class PostQuote extends StatelessWidget {
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(Radius.circular(4)),
                   ),
-                  child: Text(' $quote ',
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  child: Opacity(
+                    opacity: blocked ? 0.8 : 1.0,
+                    child: Text(' $quote ',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
                 ),
               ),
             ],

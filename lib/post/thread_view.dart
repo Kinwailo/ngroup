@@ -131,24 +131,28 @@ class ThreadBlockedTile extends HookConsumerWidget {
             textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
         child: InkWell(
           onTap: () => ref.read(threadsLoader).select(data),
-          child: Row(
-            children: [
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
-                child: Text.rich(
-                  TextSpan(children: [
-                    WidgetSpan(child: ThreadState(data)),
-                    _senderTextSpan(context, data),
-                    const WidgetSpan(child: SizedBox(width: 4)),
-                    TextSpan(
-                      text: data.thread.dateTime.toLocal().string,
-                      style: TextStyle(color: colorScheme.onTertiaryContainer),
-                    ),
-                  ]),
+          child: Opacity(
+            opacity: 0.8,
+            child: Row(
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
+                  child: Text.rich(
+                    TextSpan(children: [
+                      WidgetSpan(child: ThreadState(data)),
+                      _senderTextSpan(context, data),
+                      const WidgetSpan(child: SizedBox(width: 4)),
+                      TextSpan(
+                        text: data.thread.dateTime.toLocal().string,
+                        style:
+                            TextStyle(color: colorScheme.onTertiaryContainer),
+                      ),
+                    ]),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -233,7 +237,12 @@ class ThreadState extends ConsumerWidget {
       widget = Padding(
         padding: const EdgeInsets.only(right: 4, top: 2, bottom: 1),
         child: Icon(Icons.block,
-            size: 16, color: thread.isNew ? theme.isNew! : theme.isRead!),
+            size: 16,
+            color: thread.isNew
+                ? theme.isNew!
+                : thread.isRead
+                    ? theme.isRead!
+                    : theme.sender!),
       );
     } else if (thread.isRead) {
       widget = Padding(
