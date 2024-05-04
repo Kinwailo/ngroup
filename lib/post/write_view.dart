@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -231,14 +232,20 @@ class WriteAttachment extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var controller = ref.read(writeController);
     var selected = controller.selectedFile.value;
-    final scale = useState(WriteController.scaleOriginal);
+
+    final scale = useState(WriteController.scaleList.length - 1);
+    final original = useState(true);
+    final hqResize = useState(false);
+
     useListenable(controller.files);
     useListenable(controller.selectedFile);
     useListenable(controller.resizing);
-    useValueChanged(
-        selected,
-        (_, __) => scale.value = controller.imageData[selected]?.scale ??
-            WriteController.scaleOriginal);
+    useValueChanged(selected, (_, void __) {
+      scale.value = controller.imageData[selected]?.scale ??
+          WriteController.scaleList.length - 1;
+      original.value = controller.imageData[selected]?.original ?? true;
+      hqResize.value = controller.imageData[selected]?.hqResize ?? false;
+    });
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(8),
@@ -261,42 +268,61 @@ class WriteAttachment extends HookConsumerWidget {
                   MediaQuery(
                     data: MediaQuery.of(context)
                         .copyWith(textScaler: TextScaler.noScaling),
-                    child: Opacity(
-                      opacity: controller.resizing.value ? 0.3 : 1.0,
-                      child: IgnorePointer(
-                        ignoring: controller.resizing.value,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ToggleButtons(
-                              isSelected: List.generate(
-                                  WriteController.scaleOriginal + 1,
-                                  (i) => i == scale.value),
-                              onPressed: (i) {
-                                scale.value = i;
-                                controller.setImageScale(selected, i);
-                              },
-                              constraints: const BoxConstraints(
-                                  minWidth: 46, minHeight: 24),
-                              children: [
-                                ...WriteController.scaleList
-                                    .take(WriteController.scaleOriginal)
-                                    .map((e) => Text(
-                                        '${(e * 100).toStringAsFixed(0)}%')),
-                                const Text('*'),
-                              ],
-                            ),
-                            const SizedBox(width: 8),
-                            ToggleButtons(
-                              isSelected: const [false],
-                              onPressed: (_) => controller.removeFile(selected),
-                              constraints: const BoxConstraints(
-                                  minWidth: 24, minHeight: 24),
-                              children: const [Icon(Icons.clear)],
-                            ),
-                          ],
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        ...WriteController.scaleList
+                            .mapIndexed((i, e) => ChoiceChip(
+                                  label:
+                                      Text('${(e * 100).toStringAsFixed(0)}%'),
+                                  padding: const EdgeInsets.all(0),
+                                  selected: !original.value && scale.value == i,
+                                  onSelected: (v) {
+                                    if (!v) return;
+                                    if (controller.resizing.value) return;
+                                    if (original.value || scale.value != i) {
+                                      scale.value = i;
+                                      original.value = false;
+                                      controller.setImageScale(
+                                          selected, i, false, hqResize.value);
+                                    }
+                                  },
+                                )),
+                        ChoiceChip(
+                          label: const Text('Original'),
+                          padding: const EdgeInsets.all(0),
+                          selected: original.value,
+                          onSelected: (v) {
+                            if (!v) return;
+                            if (controller.resizing.value) return;
+                            if (original.value != v) {
+                              original.value = v;
+                              controller.setImageScale(
+                                  selected, scale.value, true, hqResize.value);
+                            }
+                          },
                         ),
-                      ),
+                        ChoiceChip(
+                          label: const Text('HQ Resize'),
+                          padding: const EdgeInsets.all(0),
+                          selected: hqResize.value,
+                          onSelected: (v) {
+                            if (controller.resizing.value) return;
+                            hqResize.value = v;
+                            controller.setImageScale(
+                                selected, scale.value, original.value, v);
+                          },
+                        ),
+                        ActionChip(
+                          label: const Text('Remove'),
+                          padding: const EdgeInsets.all(0),
+                          onPressed: () {
+                            if (controller.resizing.value) return;
+                            controller.removeFile(selected);
+                          },
+                        )
+                      ],
                     ),
                   ),
               ],
@@ -327,8 +353,8 @@ class WriteFile extends HookConsumerWidget {
     var controller = ref.read(writeController);
 
     var data = controller.imageData[file];
-    var scale =
-        WriteController.scaleList[data?.scale ?? WriteController.scaleOriginal];
+    var scale = WriteController
+        .scaleList[data?.scale ?? WriteController.scaleList.length - 1];
     var width = data?.info?.width ?? 0;
     var height = data?.info?.height ?? 0;
     var size = data?.bytes?.lengthInBytes ?? 0;

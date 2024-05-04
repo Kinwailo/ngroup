@@ -22,15 +22,16 @@ final writeController = Provider<WriteController>(WriteController.new);
 class ImageData {
   ImageData(this.info, this.bytes);
   img.DecodeInfo? info;
-  int scale = WriteController.scaleOriginal;
+  int scale = WriteController.scaleList.length - 1;
+  bool original = true;
+  bool hqResize = false;
   Uint8List? bytes;
 }
 
 class WriteController {
   final Ref ref;
 
-  static const scaleList = [0.25, 0.33, 0.50, 0.66, 0.75, 1.00, 1.00];
-  static const scaleOriginal = 6;
+  static const scaleList = [0.16, 0.25, 0.33, 0.50, 0.66, 0.75, 0.90, 1.00];
 
   var name = TextEditingController();
   var email = TextEditingController();
@@ -161,31 +162,41 @@ class WriteController {
     }
   }
 
-  Future<void> setImageScale(PlatformFile file, int scale) async {
-    if (scale == WriteController.scaleOriginal) {
-      imageData[file]!.scale = scale;
-      imageData[file]!.bytes = file.bytes;
-      return;
-    }
-    var width = img
-        .findDecoderForNamedImage(file.name)
-        ?.startDecode(file.bytes!)
-        ?.width;
-    if (width == null) return;
-    width = (width * scaleList[scale]).toInt();
-
-    var cmd = img.Command()
-      ..decodeNamedImage(file.name, file.bytes!)
-      ..copyResize(width: width, interpolation: img.Interpolation.linear)
-      ..encodeJpg(quality: 85);
+  Future<void> setImageScale(
+      PlatformFile file, int scale, bool original, bool hqResize) async {
     imageData[file]!.scale = scale;
+    imageData[file]!.original = original;
+    imageData[file]!.hqResize = hqResize;
+
+    img.Command? cmd;
+
+    if (original) {
+      imageData[file]!.bytes = file.bytes;
+    } else {
+      var width = img
+          .findDecoderForNamedImage(file.name)
+          ?.startDecode(file.bytes!)
+          ?.width;
+      if (width == null) return;
+      width = (width * scaleList[scale]).toInt();
+
+      cmd = img.Command()
+        ..decodeNamedImage(file.name, file.bytes!)
+        ..copyResize(
+            width: width,
+            interpolation:
+                hqResize ? img.Interpolation.cubic : img.Interpolation.linear)
+        ..encodeJpg(quality: 85);
+    }
     files.value = [...files.value];
 
-    resizing.value = true;
-    _updateSendable();
-    imageData[file]!.bytes = await cmd.getBytesThread();
-    resizing.value = false;
-    _updateSendable();
+    if (cmd != null) {
+      resizing.value = true;
+      _updateSendable();
+      imageData[file]!.bytes = await cmd.getBytesThread();
+      resizing.value = false;
+      _updateSendable();
+    }
   }
 
   Future<void> send(BuildContext context,
