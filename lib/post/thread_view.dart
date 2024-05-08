@@ -124,6 +124,9 @@ class ThreadBlockedTile extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
+    var color = data.matchIndex % 2 == 0
+        ? colorScheme.background.withOpacity(0.3)
+        : colorScheme.background.withOpacity(0.1);
     return CustomPaint(
       painter: BlockPainter(colorScheme.surfaceTint, Colors.yellow),
       child: MediaQuery(
@@ -131,29 +134,31 @@ class ThreadBlockedTile extends HookConsumerWidget {
             textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
         child: InkWell(
           onTap: () => ref.read(threadsLoader).select(data),
-          child: Opacity(
-            opacity: 0.8,
-            child: Row(
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
-                  child: Text.rich(
-                    TextSpan(children: [
-                      WidgetSpan(child: ThreadState(data)),
-                      _senderTextSpan(context, data),
-                      const WidgetSpan(child: SizedBox(width: 4)),
-                      TextSpan(
-                        text: data.thread.dateTime.toLocal().string,
-                        style:
-                            TextStyle(color: colorScheme.onTertiaryContainer),
-                      ),
-                    ]),
+          child: TweenAnimationBuilder(
+              tween: ColorTween(begin: color, end: color),
+              duration: Durations.short4,
+              builder: (context, value, _) {
+                return Container(
+                  width: double.infinity,
+                  color: value,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
+                    child: Text.rich(
+                      TextSpan(children: [
+                        WidgetSpan(child: ThreadState(data)),
+                        _senderTextSpan(context, data),
+                        const WidgetSpan(child: SizedBox(width: 4)),
+                        TextSpan(
+                          text: data.thread.dateTime.toLocal().string,
+                          style:
+                              TextStyle(color: colorScheme.onTertiaryContainer),
+                        ),
+                      ]),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                );
+              }),
         ),
       ),
     );
