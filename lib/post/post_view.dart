@@ -453,7 +453,7 @@ class PostBody extends ConsumerWidget {
     var filters = ref.read(filterProvider);
     var blocked = Settings.blockSenders.val.contains(data.parent?.post.from);
     var quote = ref.read(postsLoader).getQuoteData(data);
-    if (blocked ||
+    if ((blocked && Settings.showQuote.val != ShowQuote.never) ||
         (CaptureView.of(context) && ref.read(selectedPostProvider) != '')) {
       quote = data.parent;
     }
