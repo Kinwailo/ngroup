@@ -72,6 +72,7 @@ icons_launcher:
       enable: true
     ios:
       enable: true
+      image_path: "assets/icon_ios.png"
     web:
       enable: true
     macos:
