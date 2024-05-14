@@ -84,12 +84,14 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
     var data = await future;
     await AppDatabase.get.markAllThreadsRead(data.group.id!);
     await AppDatabase.get.markAllPostsRead(data.group.id!);
+    ref.read(threadsLoader).markAllRead();
   }
 
   Future<void> resetAllNew() async {
     var data = await future;
     await AppDatabase.get.resetAllNewPosts(data.group.id!);
     await AppDatabase.get.resetAllNewThreads(data.group.id!);
+    ref.read(threadsLoader).resetAllNew();
   }
 
   Future<void> deleteGroup(ProgressDialog pd) async {

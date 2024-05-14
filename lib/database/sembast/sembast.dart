@@ -18,7 +18,7 @@ class DatabaseImp implements AppDatabase {
 
   StreamController<List<Server>>? _serverListStreamController;
   StreamController<List<Group>>? _groupListStreamController;
-  StreamController<List<Thread>>? _threadListStreamController;
+  StreamController<dynamic>? _threadChangeStreamController;
   StreamController<dynamic>? _postChangeStreamController;
 
   final Lock _sembastLock = Lock();
@@ -262,23 +262,29 @@ class DatabaseImp implements AppDatabase {
   }
 
   @override
-  Stream<List<Thread>> threadListStream(int groupId) {
-    if (_threadListStreamController != null) {
-      _threadListStreamController?.close();
+  Stream<dynamic> threadChangeStream(int groupId) {
+    if (_threadChangeStreamController != null) {
+      _threadChangeStreamController?.close();
     }
-    _threadListStreamController = StreamController();
+    _threadChangeStreamController = StreamController();
 
+    var store = stringMapStoreFactory.store('Thread');
+    var finder = Finder(filter: Filter.equals('groupId', groupId));
+    var query = store.query(finder: finder);
+    var stream = query.onCount(_sembast).distinct();
+    _threadChangeStreamController?.addStream(stream);
+    return _threadChangeStreamController!.stream;
+  }
+
+  @override
+  Future<List<Thread>> threadList(int groupId) async {
     var store = stringMapStoreFactory.store('Thread');
     var finder = Finder(
       filter: Filter.equals('groupId', groupId),
       sortOrders: [SortOrder('number', false)],
     );
-    var query = store.query(finder: finder);
-    var stream = query
-        .onSnapshots(_sembast)
-        .map((e) => e.map((e) => _toThread(e)).toList());
-    _threadListStreamController?.addStream(stream);
-    return _threadListStreamController!.stream;
+    var list = await store.find(_sembast, finder: finder);
+    return list.map((e) => _toThread(e)).toList();
   }
 
   @override

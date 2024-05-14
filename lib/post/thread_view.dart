@@ -175,14 +175,15 @@ class ThreadNormalTile extends HookConsumerWidget {
     var colorScheme = Theme.of(context).colorScheme;
     var theme = Theme.of(context).extension<NGroupTheme>()!;
     var thread = data.thread;
+    var state = ref.watch(threadStateProvider(data.thread.messageId));
 
-    var countText = '${thread.unreadCount} / ${thread.totalCount}';
-    if (thread.unreadCount == 0 || thread.unreadCount == thread.totalCount) {
+    var countText = '${state.unreadCount} / ${thread.totalCount}';
+    if (state.unreadCount == 0 || state.unreadCount == thread.totalCount) {
       countText = '${thread.totalCount}';
     }
 
     return Opacity(
-      opacity: thread.unreadCount == 0 ? 0.5 : 1.0,
+      opacity: state.unreadCount == 0 ? 0.5 : 1.0,
       child: badges.Badge(
         ignorePointer: true,
         showBadge: data.match,
@@ -190,9 +191,9 @@ class ThreadNormalTile extends HookConsumerWidget {
         badgeContent: Text.rich(
           TextSpan(
             children: [
-              if (thread.newCount > 0 &&
-                  thread.newCount != thread.unreadCount &&
-                  thread.newCount != thread.totalCount)
+              if (state.newCount > 0 &&
+                  state.newCount != state.unreadCount &&
+                  state.newCount != thread.totalCount)
                 WidgetSpan(
                     child: Padding(
                   padding: const EdgeInsets.only(right: 4, top: 2, bottom: 3),
@@ -210,8 +211,8 @@ class ThreadNormalTile extends HookConsumerWidget {
         ),
         badgeStyle: badges.BadgeStyle(
           badgeColor:
-              (thread.newCount > 0 && thread.newCount == thread.unreadCount) ||
-                      thread.newCount == thread.totalCount
+              (state.newCount > 0 && state.newCount == state.unreadCount) ||
+                      state.newCount == thread.totalCount
                   ? theme.isNew!
                   : colorScheme.secondaryContainer,
           shape: badges.BadgeShape.square,
@@ -234,8 +235,8 @@ class ThreadState extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var theme = Theme.of(context).extension<NGroupTheme>()!;
-    var thread = data.thread;
     var blocked = Settings.blockSenders.val.contains(data.thread.from);
+    var state = ref.watch(threadStateProvider(data.thread.messageId));
 
     Widget widget = const SizedBox.shrink();
     if (blocked) {
@@ -243,19 +244,19 @@ class ThreadState extends ConsumerWidget {
         padding: const EdgeInsets.only(right: 4, top: 2, bottom: 1),
         child: Icon(Icons.block,
             size: 16,
-            color: thread.isNew
+            color: state.isNew
                 ? theme.isNew!
-                : thread.isRead
+                : state.isRead
                     ? theme.isRead!
                     : theme.sender!),
       );
-    } else if (thread.isRead) {
+    } else if (state.isRead) {
       widget = Padding(
         padding: const EdgeInsets.only(right: 4, top: 2, bottom: 1),
         child: Icon(Icons.check,
-            size: 16, color: thread.isNew ? theme.isNew! : theme.isRead!),
+            size: 16, color: state.isNew ? theme.isNew! : theme.isRead!),
       );
-    } else if (thread.isNew) {
+    } else if (state.isNew) {
       widget = Padding(
         padding: const EdgeInsets.only(right: 4, top: 2, bottom: 3),
         child: Icon(Icons.circle, size: 12, color: theme.isNew!),

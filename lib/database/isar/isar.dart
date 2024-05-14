@@ -155,12 +155,20 @@ class DatabaseImp implements AppDatabase {
   }
 
   @override
-  Stream<List<Thread>> threadListStream(int groupId) {
+  Stream<dynamic> threadChangeStream(int groupId) {
+    return _isar.threads
+        .where()
+        .groupIdEqualToAnyNumber(groupId)
+        .build()
+        .watchLazy(fireImmediately: true);
+  }
+
+  @override
+  Future<List<Thread>> threadList(int groupId) async {
     return _isar.threads
         .where(sort: Sort.desc)
         .groupIdEqualToAnyNumber(groupId)
-        .build()
-        .watch(fireImmediately: true);
+        .findAll();
   }
 
   @override
@@ -194,7 +202,7 @@ class DatabaseImp implements AppDatabase {
         thread.unreadCount--;
         await _isar.threads.put(thread);
       }
-    });
+    }, silent: true);
   }
 
   @override

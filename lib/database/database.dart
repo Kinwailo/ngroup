@@ -48,7 +48,9 @@ abstract class AppDatabase {
 
   Future<void> sweepGroup(int id, int number);
 
-  Stream<List<Thread>> threadListStream(int groupId);
+  Stream<dynamic> threadChangeStream(int groupId);
+
+  Future<List<Thread>> threadList(int groupId);
 
   Future<void> addThreads(List<Thread> threads);
 

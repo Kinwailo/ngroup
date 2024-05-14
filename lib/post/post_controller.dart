@@ -147,7 +147,7 @@ class PostsLoader {
       scrollControl.jumpTop();
       _subscription?.cancel();
       _subscription = AppDatabase.get.postChangeStream(threadId).listen(
-        (e) async {
+        (_) async {
           scrollControl.saveLast((i) => getId(i));
           await getPosts(threadId);
 
@@ -326,6 +326,7 @@ class PostsLoader {
     await AppDatabase.get
         .markThreadRead(data.post.threadId, data.post.messageId);
     await AppDatabase.get.updatePost(data.post);
+    await ref.read(threadsLoader).markThreadRead(data.post.threadId);
   }
 
   void nextUnread() {
