@@ -51,6 +51,9 @@ class WriteIdentity extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var controller = ref.read(writeController);
     useListenable(controller.identity);
+    useListenable(controller.name);
+    useListenable(controller.email);
+    useListenable(controller.subject);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(8),
@@ -77,16 +80,30 @@ class WriteIdentity extends HookConsumerWidget {
             ),
             if (controller.identity.value == -1) ...[
               TextField(
-                decoration: const InputDecoration(labelText: 'Name'),
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  errorText:
+                      controller.name.text.isNotEmpty ? null : 'Name is empty!',
+                ),
                 controller: controller.name,
               ),
               TextField(
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  errorText: controller.email.text.isNotEmpty
+                      ? null
+                      : 'Email is empty!',
+                ),
                 controller: controller.email,
               ),
             ],
             TextField(
-              decoration: const InputDecoration(labelText: 'Subject'),
+              decoration: InputDecoration(
+                labelText: 'Subject',
+                errorText: controller.subject.text.isNotEmpty
+                    ? null
+                    : 'Subject is empty!',
+              ),
               controller: controller.subject,
             ),
           ],
@@ -103,6 +120,7 @@ class WriteContent extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var controller = ref.read(writeController);
     useListenable(controller.body);
+    useListenable(controller.files);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(8),
@@ -110,7 +128,13 @@ class WriteContent extends HookConsumerWidget {
           children: [
             TextField(
               maxLines: null,
-              decoration: const InputDecoration(labelText: 'Content'),
+              decoration: InputDecoration(
+                labelText: 'Content',
+                errorText: controller.body.text.isNotEmpty ||
+                        controller.files.value.isNotEmpty
+                    ? null
+                    : 'Content or attachment is empty!',
+              ),
               controller: controller.body,
             ),
             Align(

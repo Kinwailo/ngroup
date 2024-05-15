@@ -59,6 +59,8 @@ class WriteController {
     subject.addListener(_updateSendable);
     name.addListener(_updateSendable);
     email.addListener(_updateSendable);
+    body.addListener(_updateSendable);
+    files.addListener(_updateSendable);
 
     ref.listen(selectedGroupProvider, (_, groupId) {
       _setGroupIdentity(groupId);
@@ -77,6 +79,7 @@ class WriteController {
     sendable.value = name.text.isNotEmpty &&
         email.text.isNotEmpty &&
         subject.text.isNotEmpty &&
+        (body.text.isNotEmpty || files.value.isNotEmpty) &&
         !resizing.value;
   }
 
