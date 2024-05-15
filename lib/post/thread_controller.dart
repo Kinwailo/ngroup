@@ -8,6 +8,7 @@ import '../core/scroll_control.dart';
 import '../database/database.dart';
 import '../database/models.dart';
 import '../group/group_controller.dart';
+import '../home/filter_controller.dart';
 import '../home/home_controller.dart';
 import '../settings/settings.dart';
 import 'post_view.dart';
@@ -73,8 +74,6 @@ class ThreadsLoader {
   }
 
   Future<void> updateList(int groupId) async {
-    var scrollControl = ref.read(threadListScrollProvider);
-    scrollControl.saveLast((i) => getId(i));
     var list = await AppDatabase.get.threadList(groupId);
     _threads.clear();
     _threads.addEntries(list.mapIndexed((i, t) => MapEntry(
@@ -87,13 +86,20 @@ class ThreadsLoader {
   }
 
   String getId(int index) {
-    return index >= _threads.length
+    var id = index >= _threads.length
         ? ''
         : _threads.values.elementAt(index).thread.messageId;
+    var data = getThreadData(id);
+    if (data == null) return id;
+    if (!ref.read(filterProvider).filterThread(data.thread)) return '';
+    return id;
   }
 
   int getIndex(String id) {
-    return _threads[id]?.index ?? 0;
+    var data = getThreadData(id);
+    if (data == null) return 0;
+    if (!ref.read(filterProvider).filterThread(data.thread)) return 0;
+    return data.index;
   }
 
   ThreadData? getThreadData(String threadId) {

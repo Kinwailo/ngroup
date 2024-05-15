@@ -27,8 +27,6 @@ class ThreadView extends HookConsumerWidget {
     var groupId = ref.read(selectedGroupProvider);
 
     var scrollControl = ref.read(threadListScrollProvider);
-    ref.listen(threadsProvider,
-        (_, __) => scrollControl.jumpLastId((id) => loader.getIndex(id)));
     useEffect(() {
       ref.read(leftNavigator).onPathChanged = (old, now) {
         if (old == ThreadView.path) {
@@ -36,7 +34,6 @@ class ThreadView extends HookConsumerWidget {
         }
       };
       return null;
-      // return () => scrollControl.saveLast((i) => loader.getId(i));
     });
 
     var filters = ref.read(filterProvider);
@@ -51,7 +48,6 @@ class ThreadView extends HookConsumerWidget {
     useAutomaticKeepAlive();
     useListenable(Listenable.merge(
         [filters, ...filters.filters.where((e) => e.useInThread)]));
-    useListenable(Settings.blockSenders);
 
     return ScrollablePositionedList.builder(
       key: ValueKey(threads),
@@ -97,6 +93,7 @@ class ThreadTile extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     useListenable(Settings.contentScale);
+    useListenable(Settings.blockSenders);
     return AnimatedCrossFade(
       duration: Durations.short2,
       crossFadeState:

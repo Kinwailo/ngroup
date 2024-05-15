@@ -176,6 +176,10 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
     if (!silently) await resetAllNew();
     data.options.lastView.val = data.options.lastDownload.val;
 
+    var loader = ref.read(threadsLoader);
+    var scrollControl = ref.read(threadListScrollProvider);
+    scrollControl.saveLast((i) => loader.getId(i));
+
     try {
       var nntp = await NNTPService.fromGroup(data.group.id!);
       var (:count, :first, :last) = await nntp!.getGroupRange(data.group.id!);
