@@ -429,8 +429,8 @@ TextSpan _senderTextSpan(BuildContext context, PostData data,
   return TextSpan(
     text: '${data.post.from.sender} ',
     style: TextStyle(color: theme.sender?.withOpacity(opacity)),
-    recognizer: TapGestureRecognizer()
-      ..onTap = () {
+    recognizer: LongPressGestureRecognizer()
+      ..onLongPress = () {
         if (Settings.blockSenders.val.contains(data.post.from)) {
           Settings.blockSenders.val.remove(data.post.from);
         } else {

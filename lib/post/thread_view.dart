@@ -73,8 +73,8 @@ TextSpan _senderTextSpan(BuildContext context, ThreadData data,
   return TextSpan(
     text: '${data.thread.from.sender} ',
     style: TextStyle(color: theme.sender?.withOpacity(opacity)),
-    recognizer: TapGestureRecognizer()
-      ..onTap = () {
+    recognizer: LongPressGestureRecognizer()
+      ..onLongPress = () {
         if (Settings.blockSenders.val.contains(data.thread.from)) {
           Settings.blockSenders.val.remove(data.thread.from);
         } else {
