@@ -24,12 +24,15 @@ final threadsProvider = StateProvider<List<ThreadData>?>((ref) => null);
 final threadStateProvider =
     StateProvider.autoDispose.family<ThreadState, String>((ref, id) {
   var data = ref.read(threadsLoader).getThreadData(id);
-  var thread = data?.thread ?? Thread();
-  return ThreadState()
-    ..isNew = thread.isNew
-    ..isRead = thread.isRead
-    ..newCount = thread.newCount
-    ..unreadCount = thread.unreadCount;
+  var state = ThreadState();
+  if (data != null) {
+    state
+      ..isNew = data.thread.isNew
+      ..isRead = data.thread.isRead
+      ..newCount = data.thread.newCount
+      ..unreadCount = data.thread.unreadCount;
+  }
+  return state;
 });
 
 final threadListScrollProvider =
@@ -45,10 +48,10 @@ class ThreadData {
 }
 
 class ThreadState {
-  late bool isNew;
-  late bool isRead;
-  late int newCount;
-  late int unreadCount;
+  bool isNew = false;
+  bool isRead = false;
+  int newCount = 0;
+  int unreadCount = 0;
 }
 
 class ThreadsLoader {
@@ -63,20 +66,24 @@ class ThreadsLoader {
     ref.listen(selectedGroupProvider, (_, groupId) {
       scrollControl.jumpTop();
       _subscription?.cancel();
-      _subscription = AppDatabase.get.threadChangeStream(groupId).listen(
-        (_) async {
-          scrollControl.saveLast((i) => getId(i));
-          var e = await AppDatabase.get.threadList(groupId);
-          _threads.clear();
-          _threads.addEntries(e.mapIndexed((i, t) => MapEntry(
-              t.messageId,
-              ThreadData(t)
-                ..index = i
-                ..attachment = t.bytes > Settings.attachmentSize.val)));
-          ref.read(threadsProvider.notifier).state = _threads.values.toList();
-        },
-      );
+      _subscription = AppDatabase.get
+          .threadChangeStream(groupId)
+          .listen((_) async => updateList(groupId));
     }, fireImmediately: true);
+  }
+
+  Future<void> updateList(int groupId) async {
+    var scrollControl = ref.read(threadListScrollProvider);
+    scrollControl.saveLast((i) => getId(i));
+    var list = await AppDatabase.get.threadList(groupId);
+    _threads.clear();
+    _threads.addEntries(list.mapIndexed((i, t) => MapEntry(
+        t.messageId,
+        ThreadData(t)
+          ..index = i
+          ..attachment = t.bytes > Settings.attachmentSize.val)));
+    ref.read(threadsProvider.notifier).state = _threads.values.toList();
+    ref.invalidate(threadStateProvider);
   }
 
   String getId(int index) {

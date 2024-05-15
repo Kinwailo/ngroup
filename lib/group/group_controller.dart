@@ -246,6 +246,9 @@ class GroupDataNotifier extends AsyncNotifier<GroupData> {
       msg += posts > 1 ? 's.' : '.';
       pd.message.value = msg;
       pd.completed.value = true;
+      if (threads == 0) {
+        await ref.read(threadsLoader).updateList(data.group.id!);
+      }
     } catch (e) {
       pd.message.value = e.toString();
       pd.error.value = true;
