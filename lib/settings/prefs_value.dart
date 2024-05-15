@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 abstract class PrefsStorage {
   void save(String key, String value);
@@ -29,6 +30,42 @@ class PrefsEnum<T extends Enum> extends PrefsValue<T> {
     String name = jsonDecode(v);
     if (!values.map((e) => e.name).contains(name)) name = values[0].name;
     return values.byName(name);
+  }
+}
+
+class PrefsShortcut extends PrefsValue<SingleActivator> {
+  PrefsShortcut(
+    super.key,
+    super.defaultValue,
+    super.storage, {
+    super.description,
+    super.prompt,
+  });
+
+  @override
+  String _encode(SingleActivator v) {
+    var map = {
+      'key': v.trigger.keyId,
+      'control': v.control,
+      'shift': v.shift,
+      'alt': v.alt,
+      'repeat': v.includeRepeats,
+    };
+    return jsonEncode(map);
+  }
+
+  @override
+  SingleActivator _decode(String v) {
+    var map = jsonDecode(v);
+    var key = LogicalKeyboardKey.findKeyByKeyId(map['key']) ??
+        LogicalKeyboardKey.space;
+    var control = map['control'];
+    var shift = map['shift'];
+    var alt = map['alt'];
+    var repeat = map['repeat'];
+    var s = SingleActivator(key,
+        control: control, shift: shift, alt: alt, includeRepeats: repeat);
+    return s;
   }
 }
 

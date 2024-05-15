@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../database/database.dart';
 import '../database/models.dart';
@@ -91,6 +92,32 @@ class Settings {
     100,
     _storage,
     description: 'Content text scale (%)',
+  );
+
+  static var shortcutRefresh = PrefsShortcut(
+    'shortcutRefresh',
+    const SingleActivator(LogicalKeyboardKey.keyR,
+        control: true, includeRepeats: false),
+    _storage,
+    description: 'Refresh',
+    prompt: 'Shortcut for refresh',
+  );
+
+  static var shortcutMarkAllRead = PrefsShortcut(
+    'shortcutMarkAllRead',
+    const SingleActivator(LogicalKeyboardKey.keyM,
+        control: true, includeRepeats: false),
+    _storage,
+    description: 'Mark all as read',
+    prompt: 'Shortcut for mark all as read',
+  );
+
+  static var shortcutSmartNext = PrefsShortcut(
+    'shortcutSmartNext',
+    const SingleActivator(LogicalKeyboardKey.keyN, includeRepeats: false),
+    _storage,
+    description: 'Smart next',
+    prompt: 'Shortcut for smart next',
   );
 
   static var identities = PrefsValue(

@@ -8,6 +8,7 @@ import '../group/group_controller.dart';
 import 'prefs_tile.dart';
 import 'prefs_value.dart';
 import 'settings.dart';
+import 'widgets/prefs_shortcut_tile.dart';
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
@@ -36,6 +37,11 @@ class SettingsView extends ConsumerWidget {
                 PrefsIntTile(Settings.contentScale, min: 80, step: 5),
               ],
             ),
+            PrefsShortcutsTile(children: [
+              PrefsShortcutTile(Settings.shortcutRefresh),
+              PrefsShortcutTile(Settings.shortcutMarkAllRead),
+              PrefsShortcutTile(Settings.shortcutSmartNext),
+            ]),
             PrefsGroupTile(children: [
               PrefsIdentitiesTile(
                 Settings.identities,
@@ -88,16 +94,36 @@ class SettingsView extends ConsumerWidget {
   }
 }
 
+class PrefsShortcutsTile extends HookWidget {
+  const PrefsShortcutsTile({
+    super.key,
+    required this.children,
+  });
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+        child: ExpansionTile(
+            title: const Text('Shortcuts'),
+            controlAffinity: ListTileControlAffinity.leading,
+            children: [
+          ...children
+              .map((e) => [const Divider(indent: 16, endIndent: 16), e])
+              .expand((e) => e)
+        ]));
+  }
+}
+
 class PrefsStripTile extends HookWidget {
   const PrefsStripTile(
     this.value, {
     super.key,
-    this.onChanged,
     required this.children,
   });
 
   final PrefsValue<bool> value;
-  final Function(bool)? onChanged;
   final List<Widget> children;
 
   @override

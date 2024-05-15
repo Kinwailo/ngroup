@@ -61,17 +61,46 @@ class HomeView extends HookConsumerWidget {
     useListenable(Settings.webappMaxWidth);
 
     return Scaffold(
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-            constraints: BoxConstraints(
-                minWidth: kIsWeb ? 800 : 0,
-                maxWidth: kIsWeb
-                    ? Settings.webappMaxWidth.val.toDouble()
-                    : double.infinity),
-            child: Adaptive.useTwoPaneUI ? const TwoPane() : const SlidePane()),
+      body: HomeShortcuts(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+              constraints: BoxConstraints(
+                  minWidth: kIsWeb ? 800 : 0,
+                  maxWidth: kIsWeb
+                      ? Settings.webappMaxWidth.val.toDouble()
+                      : double.infinity),
+              child:
+                  Adaptive.useTwoPaneUI ? const TwoPane() : const SlidePane()),
+        ),
       ),
     );
+  }
+}
+
+class HomeShortcuts extends HookConsumerWidget {
+  const HomeShortcuts({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    useListenable(Settings.shortcutRefresh);
+    return CallbackShortcuts(bindings: {
+      Settings.shortcutRefresh.val: () => ref
+          .read(groupDataProvider.notifier)
+          .reload(ProgressDialog(context), SelectionDialog(context)),
+      Settings.shortcutMarkAllRead.val: () =>
+          ref.read(groupDataProvider.notifier).markAllRead(),
+      Settings.shortcutSmartNext.val: () {
+        var loader = ref.read(postsLoader);
+        if (loader.unread.value > 0) {
+          loader.nextUnread();
+        } else if (Settings.threadOnNext.val) {
+          ref.read(threadsLoader).next();
+        }
+      },
+    }, child: child);
   }
 }
 
