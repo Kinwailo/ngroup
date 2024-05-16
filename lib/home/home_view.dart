@@ -85,22 +85,32 @@ class HomeShortcuts extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    var focus = ref
+        .read(writeController)
+        .focusInTextField(FocusManager.instance.primaryFocus);
+    useListenable(FocusManager.instance);
     useListenable(Settings.shortcutRefresh);
-    return CallbackShortcuts(bindings: {
-      Settings.shortcutRefresh.val: () => ref
-          .read(groupDataProvider.notifier)
-          .reload(ProgressDialog(context), SelectionDialog(context)),
-      Settings.shortcutMarkAllRead.val: () =>
-          ref.read(groupDataProvider.notifier).markAllRead(),
-      Settings.shortcutSmartNext.val: () {
-        var loader = ref.read(postsLoader);
-        if (loader.unread.value > 0) {
-          loader.nextUnread();
-        } else if (Settings.threadOnNext.val) {
-          ref.read(threadsLoader).next();
-        }
-      },
-    }, child: child);
+    useListenable(Settings.shortcutMarkAllRead);
+    useListenable(Settings.shortcutSmartNext);
+    return CallbackShortcuts(
+        bindings: focus
+            ? {}
+            : {
+                Settings.shortcutRefresh.val: () => ref
+                    .read(groupDataProvider.notifier)
+                    .reload(ProgressDialog(context), SelectionDialog(context)),
+                Settings.shortcutMarkAllRead.val: () =>
+                    ref.read(groupDataProvider.notifier).markAllRead(),
+                Settings.shortcutSmartNext.val: () {
+                  var loader = ref.read(postsLoader);
+                  if (loader.unread.value > 0) {
+                    loader.nextUnread();
+                  } else if (Settings.threadOnNext.val) {
+                    ref.read(threadsLoader).next();
+                  }
+                },
+              },
+        child: child);
   }
 }
 

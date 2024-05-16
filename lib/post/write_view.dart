@@ -80,6 +80,7 @@ class WriteIdentity extends HookConsumerWidget {
             ),
             if (controller.identity.value == -1) ...[
               TextField(
+                focusNode: controller.nameFocusNode,
                 decoration: InputDecoration(
                   labelText: 'Name',
                   errorText:
@@ -88,6 +89,7 @@ class WriteIdentity extends HookConsumerWidget {
                 controller: controller.name,
               ),
               TextField(
+                focusNode: controller.emailFocusNode,
                 decoration: InputDecoration(
                   labelText: 'Email',
                   errorText: controller.email.text.isNotEmpty
@@ -98,6 +100,7 @@ class WriteIdentity extends HookConsumerWidget {
               ),
             ],
             TextField(
+              focusNode: controller.subjectFocusNode,
               decoration: InputDecoration(
                 labelText: 'Subject',
                 errorText: controller.subject.text.isNotEmpty
@@ -127,6 +130,7 @@ class WriteContent extends HookConsumerWidget {
         child: Stack(
           children: [
             TextField(
+              focusNode: controller.bodyFocusNode,
               maxLines: null,
               decoration: InputDecoration(
                 labelText: 'Content',
@@ -166,6 +170,7 @@ class WriteSignature extends HookConsumerWidget {
         child: Stack(
           children: [
             TextField(
+              focusNode: controller.signatureFocusNode,
               maxLines: null,
               decoration: const InputDecoration(labelText: 'Signature'),
               controller: controller.signature,
@@ -208,6 +213,7 @@ class WriteQuote extends HookConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
+                  focusNode: controller.quoteFocusNode,
                   maxLines: null,
                   decoration: const InputDecoration(labelText: 'Quote'),
                   controller: controller.quote,

@@ -40,6 +40,13 @@ class WriteController {
   var signature = TextEditingController();
   var quote = TextEditingController();
 
+  var nameFocusNode = FocusNode();
+  var emailFocusNode = FocusNode();
+  var subjectFocusNode = FocusNode();
+  var bodyFocusNode = FocusNode();
+  var signatureFocusNode = FocusNode();
+  var quoteFocusNode = FocusNode();
+
   var data = ValueNotifier<PostData?>(null);
   var identity = ValueNotifier(-1);
   var enableSignature = ValueNotifier(true);
@@ -105,6 +112,17 @@ class WriteController {
   String _getQuote() {
     var text = const LineSplitter().convert(data.value?.body?.text ?? '');
     return text.map((e) => '> $e').join('\n');
+  }
+
+  bool focusInTextField(FocusNode? node) {
+    return <FocusNode>{
+      nameFocusNode,
+      emailFocusNode,
+      subjectFocusNode,
+      bodyFocusNode,
+      signatureFocusNode,
+      quoteFocusNode
+    }.contains(node);
   }
 
   void create(PostData? data) {
