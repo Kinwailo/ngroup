@@ -259,7 +259,7 @@ class WriteController {
         ..addHeader('References', references.join(' '))
         ..addHeader('User-Agent', 'NGroup @$pf')
         ..subject = subject.text
-        ..text = content;
+        ..text = latin1.decode(utf8.encode(content));
       for (var e in files.value) {
         var bytes = imageData[e]?.bytes;
         if (bytes == null) continue;

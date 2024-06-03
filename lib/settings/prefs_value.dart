@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 abstract class PrefsStorage {
-  void save(String key, String value);
+  Future<void> save(String key, String value);
   String? load(String key);
 }
 
@@ -142,12 +142,12 @@ class PrefsValue<T> extends ChangeNotifier {
     notifyListeners();
   }
 
-  void update() {
-    _save(_value);
+  Future<void> update() async {
+    await _save(_value);
     notifyListeners();
   }
 
-  void _save(T value) async {
-    storage.save(key, _encode(value));
+  Future<void> _save(T value) async {
+    await storage.save(key, _encode(value));
   }
 }

@@ -117,6 +117,9 @@ class AddStep1 extends HookConsumerWidget {
     port.addListener(() => selectionController.port =
         int.tryParse(port.text) ?? NNTPService.defaultPort);
 
+    var charset = useTextEditingController(text: selectionController.charset);
+    charset.addListener(() => selectionController.charset = charset.text);
+
     useValueChanged(selectedServer, (_, void __) {
       if (selectedServer == -1) {
         address.text = '';
@@ -160,6 +163,10 @@ class AddStep1 extends HookConsumerWidget {
             decoration: const InputDecoration(labelText: 'Port'),
             controller: port,
             enabled: selectedServer == -1,
+          ),
+          TextField(
+            decoration: const InputDecoration(labelText: 'Charset'),
+            controller: charset,
           ),
         ],
       ),
@@ -230,7 +237,7 @@ class AddStep3 extends HookConsumerWidget {
                 child: Row(
                   children: [
                     Text(
-                      '${key.name} (${key.last - key.first + 1})',
+                      '${key.display} (${key.last - key.first + 1})',
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                       style: Theme.of(context).textTheme.titleMedium,

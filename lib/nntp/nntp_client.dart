@@ -60,7 +60,7 @@ class NNTPClient extends NNTP {
   Future<void> _connect(String host, int port) async {
     _socket =
         await Socket.connect(host, port, timeout: const Duration(seconds: 5));
-    _socket.encoding = utf8;
+    _socket.encoding = latin1;
     _controller = StreamController<Uint8List>();
     _subscription = _socket.listen((e) => _controller.add(e),
         onError: (_) => close(error: true), onDone: () => close(error: true));

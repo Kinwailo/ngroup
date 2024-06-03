@@ -19,6 +19,8 @@ class GroupOptions {
   late PrefsValue<bool> askIfMore;
   late PrefsValue<int> keepMessage;
 
+  String get json => _storage.json;
+
   GroupOptions(Group group) {
     _storage = _OptionsStorage(group);
 
@@ -89,15 +91,18 @@ class GroupOptions {
 }
 
 class _OptionsStorage implements PrefsStorage {
-  late int _id;
-  late Map<String, dynamic> _options;
+  int? _id;
+  Map<String, dynamic> _options = {};
 
   _OptionsStorage(Group group) {
-    _id = group.id!;
-    if (group.options.isEmpty) group.options = '{}';
-    _options = jsonDecode(group.options);
-    _options.putIfAbsent('display', () => jsonEncode(group.name));
+    _id = group.id;
+    if (group.options.isNotEmpty) {
+      _options = jsonDecode(group.options);
+      _options.putIfAbsent('display', () => jsonEncode(group.name));
+    }
   }
+
+  String get json => jsonEncode(_options);
 
   @override
   String? load(String key) {
@@ -105,10 +110,12 @@ class _OptionsStorage implements PrefsStorage {
   }
 
   @override
-  void save(String key, String value) async {
+  Future<void> save(String key, String value) async {
     _options[key] = value;
-    var group = await AppDatabase.get.getGroup(_id);
-    group!.options = jsonEncode(_options);
-    await AppDatabase.get.updateGroup(group);
+    if (_id != null) {
+      var group = await AppDatabase.get.getGroup(_id!);
+      group!.options = jsonEncode(_options);
+      await AppDatabase.get.updateGroup(group);
+    }
   }
 }

@@ -45,6 +45,7 @@ class GroupInfo {
   final int first;
   final int last;
   int serverId = -1;
+  String display = '';
   GroupInfo(this.name, this.first, this.last);
 }
 

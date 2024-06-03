@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:collection/collection.dart';
+import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:ngroup/group/group_options.dart';
 
 import '../core/adaptive.dart';
 import '../database/database.dart';
@@ -127,6 +131,7 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
 
   String address = '';
   int port = NNTPService.defaultPort;
+  String charset = '';
 
   @override
   FutureOr<Map<GroupInfo, bool>> build() => {};
@@ -143,7 +148,12 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
 
     _selectionMap.clear();
     var list = await _nntp!.getGroupList();
-    list = list..sort((a, b) => a.name.compareTo(b.name));
+    list = list
+        .map((e) => e
+          ..display = charset.isEmpty
+              ? e.name
+              : Charset.decode(latin1.encode(e.name), charset))
+        .sorted((a, b) => a.name.compareTo(b.name));
     _selectionMap.addAll({for (var item in list) item: false});
 
     return _selectionMap;
@@ -162,9 +172,15 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
   Future<Group?> addGroups() async {
     var list = state.requireValue.entries
         .where((e) => e.value)
-        .map((e) => Group()
-          ..name = e.key.name
-          ..serverId = e.key.serverId)
+        .map((e) {
+          var group = Group()
+            ..name = e.key.name
+            ..serverId = e.key.serverId;
+          var options = GroupOptions(group)
+            ..display.val = e.key.display
+            ..charset.val = charset;
+          return group..options = options.json;
+        })
         .cast<Group>()
         .toList();
     list = await _nntp!.addGroups(list);

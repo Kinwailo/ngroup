@@ -310,7 +310,7 @@ class _SettingsStorage implements PrefsStorage {
   }
 
   @override
-  void save(String key, String value) async {
+  Future<void> save(String key, String value) async {
     var setting = await AppDatabase.get.getSetting(key);
     setting ??= Setting()..key = key;
     setting.value = value;
