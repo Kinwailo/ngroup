@@ -1,3 +1,4 @@
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -13,6 +14,8 @@ import '../group/group_controller.dart';
 import '../home/filter_controller.dart';
 import '../home/home_controller.dart';
 import '../settings/settings.dart';
+import '../widgets/progress_dialog.dart';
+import '../widgets/selection_dialog.dart';
 import 'thread_controller.dart';
 
 class ThreadView extends HookConsumerWidget {
@@ -22,6 +25,7 @@ class ThreadView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    var colorScheme = Theme.of(context).colorScheme;
     var threads = ref.watch(threadsProvider);
     var loader = ref.read(threadsLoader);
     var groupId = ref.read(selectedGroupProvider);
@@ -49,20 +53,45 @@ class ThreadView extends HookConsumerWidget {
     useListenable(Listenable.merge(
         [filters, ...filters.filters.where((e) => e.useInThread)]));
 
-    return ScrollablePositionedList.builder(
-      key: ValueKey(threads),
-      initialScrollIndex: loader.getIndex(scrollControl.lastId),
-      initialAlignment: scrollControl.lastOffset,
-      itemScrollController: scrollControl.itemScrollController,
-      itemPositionsListener: scrollControl.itemPositionsListener,
-      itemCount: filtered.length + 1,
-      itemBuilder: (_, index) {
-        if (groupId == -1) return const ListTile(title: Text('No group'));
-        if (filtered.isEmpty) return const ListTile(title: Text('No post'));
-        if (index >= filtered.length) return const SizedBox(height: 60);
-        var data = filtered[index];
-        return ThreadTile(key: ValueKey(data.thread.messageId), data);
+    return CustomMaterialIndicator(
+      displacement: 20,
+      backgroundColor: Colors.transparent,
+      onRefresh: () async {
+        Future.delayed(
+            Durations.short4,
+            () => ref
+                .read(groupDataProvider.notifier)
+                .reload(ProgressDialog(context), SelectionDialog(context)));
+        return Future.value();
       },
+      indicatorBuilder: (context, controller) => Container(
+        decoration: BoxDecoration(
+            color: colorScheme.surfaceVariant,
+            shape: BoxShape.circle,
+            border: Border.all(color: colorScheme.outline.withOpacity(0.4))),
+        child: SizedBox.square(
+          dimension: 40,
+          child: Transform.rotate(
+            angle: controller.value * 4,
+            child: const Icon(Icons.refresh),
+          ),
+        ),
+      ),
+      child: ScrollablePositionedList.builder(
+        key: ValueKey(threads),
+        initialScrollIndex: loader.getIndex(scrollControl.lastId),
+        initialAlignment: scrollControl.lastOffset,
+        itemScrollController: scrollControl.itemScrollController,
+        itemPositionsListener: scrollControl.itemPositionsListener,
+        itemCount: filtered.length + 1,
+        itemBuilder: (_, index) {
+          if (groupId == -1) return const ListTile(title: Text('No group'));
+          if (filtered.isEmpty) return const ListTile(title: Text('No post'));
+          if (index >= filtered.length) return const SizedBox(height: 60);
+          var data = filtered[index];
+          return ThreadTile(key: ValueKey(data.thread.messageId), data);
+        },
+      ),
     );
   }
 }
