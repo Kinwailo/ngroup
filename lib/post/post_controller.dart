@@ -108,7 +108,6 @@ class PostFile {
 class PostImagesNotifier extends Notifier<List<PostImage>> {
   @override
   List<PostImage> build() {
-    ref.watch(selectedThreadProvider);
     return [];
   }
 
@@ -161,6 +160,7 @@ class PostsLoader {
 
   Future<void> getPosts(String threadId) async {
     _posts.clear();
+    ref.invalidate(postImagesProvider);
 
     var postList = await AppDatabase.get.postList(threadId);
     if (postList.isNotEmpty) {
