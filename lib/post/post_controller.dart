@@ -599,6 +599,7 @@ class PostsLoader {
         .whereType<UrlElement>()
         .map((e) => e.url)
         .where((e) => const ['http', 'https'].contains(Uri.parse(e).scheme))
+        .toSet()
         .map((e) => _loadedLinkPreview[e] ??= PostLinkPreview()
           ..enabled = kIsWeb ? false : Settings.linkPreview.val
           ..url = e)
