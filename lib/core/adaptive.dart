@@ -25,7 +25,7 @@ class Adaptive {
       Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
   static bool get useTwoPaneUI =>
-      (!forceMobile && (kIsWeb || isDesktop)) || Settings.twoPane.val;
+      (!forceMobile && isDesktop) || Settings.twoPane.val;
 
   static double? get appBarHeight => isDesktop ? 32 : null;
 
