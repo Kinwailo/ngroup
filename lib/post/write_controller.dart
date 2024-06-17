@@ -114,7 +114,7 @@ class WriteController {
     return text.map((e) => '> $e').join('\n');
   }
 
-  bool focusInTextField(FocusNode? node) {
+  Set<FocusNode> getAllFocusNode() {
     return <FocusNode>{
       nameFocusNode,
       emailFocusNode,
@@ -122,7 +122,7 @@ class WriteController {
       bodyFocusNode,
       signatureFocusNode,
       quoteFocusNode
-    }.contains(node);
+    };
   }
 
   void create(PostData? data) {

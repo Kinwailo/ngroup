@@ -155,16 +155,19 @@ class AddStep1 extends HookConsumerWidget {
             ),
           ),
           TextField(
+            focusNode: selectionController.addressFocusNode,
             decoration: const InputDecoration(labelText: 'Address'),
             controller: address,
             enabled: selectedServer == -1,
           ),
           TextField(
+            focusNode: selectionController.portFocusNode,
             decoration: const InputDecoration(labelText: 'Port'),
             controller: port,
             enabled: selectedServer == -1,
           ),
           TextField(
+            focusNode: selectionController.charsetFocusNode,
             decoration: const InputDecoration(labelText: 'Charset'),
             controller: charset,
           ),
@@ -216,6 +219,7 @@ class AddStep3 extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
     var selection = ref.watch(selectionProvider).requireValue;
+    var selectionController = ref.read(selectionProvider.notifier);
 
     var scrollController = useScrollController();
     var filter = useTextEditingController();
@@ -234,7 +238,7 @@ class AddStep3 extends HookConsumerWidget {
               return Visibility(
                 visible: key.name.toString().contains(filter.text),
                 child: InkWell(
-                  onTap: () => ref.read(selectionProvider.notifier).toggle(key),
+                  onTap: () => selectionController.toggle(key),
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: Row(
@@ -249,7 +253,7 @@ class AddStep3 extends HookConsumerWidget {
                         Checkbox(
                           value: selection[key],
                           onChanged: (bool? value) =>
-                              ref.read(selectionProvider.notifier).toggle(key),
+                              selectionController.toggle(key),
                         )
                       ],
                     ),
@@ -264,6 +268,7 @@ class AddStep3 extends HookConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
               child: TextField(
+                  focusNode: selectionController.filterFocusNode,
                   controller: filter,
                   decoration: const InputDecoration(labelText: 'Filter')),
             )),

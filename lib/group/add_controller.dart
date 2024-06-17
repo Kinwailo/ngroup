@@ -133,6 +133,11 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
   int port = NNTPService.defaultPort;
   String charset = '';
 
+  var addressFocusNode = FocusNode();
+  var portFocusNode = FocusNode();
+  var charsetFocusNode = FocusNode();
+  var filterFocusNode = FocusNode();
+
   @override
   FutureOr<Map<GroupInfo, bool>> build() => {};
 
@@ -157,6 +162,15 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
     _selectionMap.addAll({for (var item in list) item: false});
 
     return _selectionMap;
+  }
+
+  Set<FocusNode> getAllFocusNode() {
+    return <FocusNode>{
+      addressFocusNode,
+      portFocusNode,
+      charsetFocusNode,
+      filterFocusNode,
+    };
   }
 
   void reset() {

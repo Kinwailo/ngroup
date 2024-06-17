@@ -8,6 +8,7 @@ import 'package:badges/badges.dart' as badges;
 import '../core/adaptive.dart';
 import '../core/theme.dart';
 import '../database/database.dart';
+import '../group/add_controller.dart';
 import '../group/add_view.dart';
 import '../group/group_controller.dart';
 import '../group/group_options.dart';
@@ -85,15 +86,17 @@ class HomeShortcuts extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    var focus = ref
-        .read(writeController)
-        .focusInTextField(FocusManager.instance.primaryFocus);
+    var focusInTextEdit = {
+      ...(ref.read(writeController).getAllFocusNode()),
+      ...(ref.read(selectionProvider.notifier).getAllFocusNode())
+    }.contains(FocusManager.instance.primaryFocus);
+
     useListenable(FocusManager.instance);
     useListenable(Settings.shortcutRefresh);
     useListenable(Settings.shortcutMarkAllRead);
     useListenable(Settings.shortcutSmartNext);
     return CallbackShortcuts(
-        bindings: focus
+        bindings: focusInTextEdit
             ? {}
             : {
                 Settings.shortcutRefresh.val: () => ref
