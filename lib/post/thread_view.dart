@@ -79,6 +79,7 @@ class ThreadView extends HookConsumerWidget {
       ),
       child: ScrollablePositionedList.builder(
         key: ValueKey(threads),
+        physics: const AlwaysScrollableScrollPhysics(),
         initialScrollIndex: loader.getIndex(scrollControl.lastId),
         initialAlignment: scrollControl.lastOffset,
         itemScrollController: scrollControl.itemScrollController,
