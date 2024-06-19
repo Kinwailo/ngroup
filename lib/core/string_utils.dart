@@ -110,7 +110,8 @@ extension StringUtils on String {
       start = text.indexOf(RegExp(r'^>.*$', multiLine: true));
       if (start != -1) {
         // end = text.indexOf(RegExp(r'\n\s?\n'), start + 1);
-        end = text.indexOf(RegExp(r'\n([^>].*|\s?)\n'), start + 1);
+        end = text.indexOf(
+            RegExp(r'\n([^>].*|\s?)$', multiLine: true), start + 1);
         if (start > 0) {
           start = text.lastIndexOf(RegExp(r'^.*?', multiLine: true), start - 1);
         }
