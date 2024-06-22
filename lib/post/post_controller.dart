@@ -535,10 +535,20 @@ class PostsLoader {
 
     var images = <PostImage>[];
     var files = <PostFile>[];
+    bool isImage(MimePart p) {
+      if (p.mediaType.isImage) return true;
+      if (p.mediaType.sub != MediaSubtype.applicationOctetStream) return false;
+      var filename = p.decodeFileName();
+      if (filename == null) return false;
+      return filename.contains('.') &&
+          ['webp', 'png', 'jpg', 'jpeg', 'jfif', 'gif', 'bmp']
+              .contains(filename.split('.').last.toLowerCase());
+    }
+
     try {
       images = mime.allPartsFlat
           // .where((e) => e.getHeaderContentDisposition() != null)
-          .where((e) => e.mediaType.isImage)
+          .where(isImage)
           .map((e) => PostImage()
             ..data = e.decodeContentBinary()
             ..filename = e.decodeFileName() ?? 'image.jpg')
@@ -550,7 +560,7 @@ class PostsLoader {
           .where((e) => !e.mediaType.isMultipart)
           .where((e) => e.mediaType.sub != MediaSubtype.textPlain)
           .where((e) => e.mediaType.sub != MediaSubtype.textHtml)
-          .where((e) => !e.mediaType.isImage)
+          .whereNot(isImage)
           .where((e) => e.decodeFileName() != null)
           .map((e) => PostFile()
             ..data = e.decodeContentBinary()
@@ -563,7 +573,7 @@ class PostsLoader {
         if (data == null) break;
         text = text.stripUuencode;
         if (filename.contains('.') &&
-            ['webp', 'png', 'jpg', 'jpeg', 'gif', 'bmp']
+            ['webp', 'png', 'jpg', 'jpeg', 'jfif', 'gif', 'bmp']
                 .contains(filename.split('.').last.toLowerCase())) {
           images.add(PostImage()
             ..data = data
