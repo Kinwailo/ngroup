@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 
 import '../core/adaptive.dart';
 import '../core/block_painter.dart';
@@ -441,13 +442,15 @@ TextSpan _senderTextSpan(BuildContext context, PostData data,
   );
 }
 
-class PostBody extends ConsumerWidget {
+class PostBody extends HookConsumerWidget {
   const PostBody(this.data, {super.key});
 
   final PostData data;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    var colorScheme = Theme.of(context).colorScheme;
+
     var body = data.body;
     var state = data.state;
     var filters = ref.read(filterProvider);
@@ -457,9 +460,38 @@ class PostBody extends ConsumerWidget {
         (CaptureView.of(context) && ref.read(selectedPostProvider) != '')) {
       quote = data.parent;
     }
+
+    final showHtml = useState(false);
+
     var quoteBody = [
       if (quote != null) PostQuote(quote),
-      if (body != null && body.text.isNotEmpty) PostBodyText(data, false),
+      if (body?.html != null && !showHtml.value)
+        Text.rich(
+          TextSpan(
+            text: 'Switch to ',
+            style: TextStyle(
+                color: colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.bold),
+            children: [
+              TextSpan(
+                  text: 'html',
+                  style: const TextStyle(
+                      color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () => showHtml.value = true),
+              const TextSpan(text: ' version\n')
+            ],
+          ),
+          textScaler: TextScaler.linear(Settings.contentScale.val / 100),
+        ),
+      if (body?.html != null && showHtml.value)
+        MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
+          child: HtmlWidget(body!.html!),
+        )
+      else if (body != null && body.text.isNotEmpty && !showHtml.value)
+        PostBodyText(data, false),
     ];
 
     var list = [

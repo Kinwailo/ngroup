@@ -77,6 +77,7 @@ class PostState {
 
 class PostBody {
   String text = '';
+  String? html;
   var links = <PostLinkPreview>[];
   var images = <PostImage>[];
   var files = <PostFile>[];
@@ -529,6 +530,11 @@ class PostsLoader {
         '';
     text = text.replaceAll('\r\n', '\n');
 
+    var html = mime.decodeTextHtmlPart();
+    html = html?.replaceAll(
+        RegExp(r'(?<!<br>\s*)<br>\s+<br>(?!\s*<br>)', caseSensitive: false),
+        '<p><br></p>');
+
     data.userAgent = mime.decodeHeaderValue('User-Agent') ??
         mime.decodeHeaderValue('X-Newsreader') ??
         '';
@@ -617,6 +623,7 @@ class PostsLoader {
 
     return PostBody()
       ..text = text
+      ..html = html
       ..links = links
       ..images = images
       ..files = files;
