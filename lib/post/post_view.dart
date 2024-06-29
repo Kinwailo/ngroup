@@ -9,6 +9,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
+import 'package:fwfh_url_launcher/fwfh_url_launcher.dart';
 
 import '../core/adaptive.dart';
 import '../core/block_painter.dart';
@@ -17,6 +18,7 @@ import '../core/datetime_utils.dart';
 import '../core/theme.dart';
 import '../home/filter_controller.dart';
 import '../home/home_controller.dart';
+import '../widgets/remote_image.dart';
 import 'capture_view.dart';
 import 'gallery_view.dart';
 import '../settings/settings.dart';
@@ -442,6 +444,24 @@ TextSpan _senderTextSpan(BuildContext context, PostData data,
   );
 }
 
+mixin NetworkImageFactory on WidgetFactory {
+  @override
+  Widget? buildImageWidget(BuildTree meta, ImageSource src) {
+    final url = src.url;
+    if (!url.startsWith(RegExp('https?://'))) {
+      return super.buildImageWidget(meta, src);
+    }
+    return RemoteImage(
+      url,
+      width: src.width,
+      height: src.height,
+    );
+  }
+}
+
+class CustomWidgetFactory extends WidgetFactory
+    with NetworkImageFactory, UrlLauncherFactory {}
+
 class PostBody extends HookConsumerWidget {
   const PostBody(this.data, {super.key});
 
@@ -488,7 +508,10 @@ class PostBody extends HookConsumerWidget {
         MediaQuery(
           data: MediaQuery.of(context).copyWith(
               textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
-          child: HtmlWidget(body!.html!),
+          child: HtmlWidget(
+            body!.html!,
+            factoryBuilder: () => CustomWidgetFactory(),
+          ),
         )
       else if (body != null && body.text.isNotEmpty && !showHtml.value)
         PostBodyText(data, false),

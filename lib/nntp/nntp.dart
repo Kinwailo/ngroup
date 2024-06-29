@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:ngroup/settings/settings.dart';
 
+import '../settings/settings.dart';
 import 'http_bridge.dart';
 import 'nntp_client.dart';
 

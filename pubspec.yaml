@@ -51,6 +51,8 @@ dependencies:
   image: ^4.1.7
   patterns_canvas: ^0.4.0
   flutter_widget_from_html_core: ^0.15.1
+  fwfh_url_launcher: ^0.9.1
+  webviewimage: ^0.0.4
 
 dev_dependencies:
   flutter_test:
