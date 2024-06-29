@@ -58,9 +58,11 @@ class RemoteImage extends HookConsumerWidget {
                         imgWidth.value *= height! / msg["height"];
                         imgHeight.value = height!;
                       } else {
-                        imgWidth.value = constraints.maxWidth;
+                        imgWidth.value = msg["width"] < constraints.maxWidth
+                            ? msg["width"]
+                            : constraints.maxWidth;
                         imgHeight.value =
-                            msg["height"] * constraints.maxWidth / msg["width"];
+                            msg["height"] * imgWidth.value / msg["width"];
                       }
                     }
                   },
@@ -88,7 +90,10 @@ class RemoteImage extends HookConsumerWidget {
               child: Icon(Icons.error),
             ),
           if (!error.value && !loading.value)
-            InkWell(onTap: () => launchUrlString(url))
+            InkWell(
+              onTap: () => launchUrlString(url),
+              child: SizedBox(width: imgWidth.value, height: imgHeight.value),
+            )
         ],
       );
     });
