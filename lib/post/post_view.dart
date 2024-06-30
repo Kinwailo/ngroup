@@ -449,13 +449,13 @@ TextSpan _senderTextSpan(BuildContext context, PostData data,
 }
 
 class NetworkImageFactory extends WidgetFactory with UrlLauncherFactory {
-  NetworkImageFactory(this.ref, this.postData);
+  NetworkImageFactory(this.ref, this.index, this.notifier, this.images);
 
   final WidgetRef ref;
-  final PostData postData;
+  final int index;
+  final PostImagesNotifier notifier;
+  final List<PostImage> images;
   final urls = <String>[];
-
-  PostImagesNotifier? notifier;
 
   static final HttpClient _httpClient = HttpClient()..autoUncompress = false;
 
@@ -481,8 +481,7 @@ class NetworkImageFactory extends WidgetFactory with UrlLauncherFactory {
       ..filename = filename
       ..url = url
       ..image = MemoryImage(bytes);
-    postData.body?.images.add(image);
-    notifier!.addImage(image, postData.index, index);
+    notifier.addImage(image, index, index);
   }
 
   @override
@@ -496,8 +495,7 @@ class NetworkImageFactory extends WidgetFactory with UrlLauncherFactory {
       return super.buildImageWidget(tree, src);
     }
     if (!kIsWeb) {
-      notifier ??= ref.read(postImagesProvider.notifier);
-      var image = postData.body?.images.firstWhereOrNull((e) => e.url == url);
+      var image = images.firstWhereOrNull((e) => e.url == url);
       if (image == null) {
         urls.add(url);
         getData(url);
@@ -529,6 +527,8 @@ class PostBody extends HookConsumerWidget {
         (CaptureView.of(context) && ref.read(selectedPostProvider) != '')) {
       quote = data.parent;
     }
+    var notifier = ref.read(postImagesProvider.notifier);
+    var images = ref.read(postImagesProvider);
 
     final showHtml = useState(data.html);
 
@@ -561,7 +561,8 @@ class PostBody extends HookConsumerWidget {
             body!.html!,
             buildAsync: false,
             enableCaching: true,
-            factoryBuilder: () => NetworkImageFactory(ref, data),
+            factoryBuilder: () =>
+                NetworkImageFactory(ref, data.index, notifier, images),
           ),
         )
       else if (body != null && body.text.isNotEmpty && !showHtml.value)
@@ -925,6 +926,7 @@ class PostImages extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
+    var images = ref.read(postImagesProvider);
     return VisibilityDetector(
       key: Key('${data.post.messageId} image'),
       onVisibilityChanged: (info) {
@@ -935,18 +937,21 @@ class PostImages extends ConsumerWidget {
           spacing: 4,
           runSpacing: 4,
           children: [
-            ...data.body!.images.mapIndexed(
-              (index, e) => Card(
-                shape: RoundedRectangleBorder(
-                    side:
-                        BorderSide(color: colorScheme.outline.withOpacity(0.4)),
-                    borderRadius: BorderRadius.circular(8)),
-                child: SizedBox(
-                  height: Settings.smallPreview.val ? 100 : null,
-                  child: GalleryItem(index, 'post-image'),
+            ...data.body!.images
+                .map((e) => images.indexWhere((img) => e.id == img.id))
+                .where((e) => e != -1)
+                .map(
+                  (e) => Card(
+                    shape: RoundedRectangleBorder(
+                        side: BorderSide(
+                            color: colorScheme.outline.withOpacity(0.4)),
+                        borderRadius: BorderRadius.circular(8)),
+                    child: SizedBox(
+                      height: Settings.smallPreview.val ? 100 : null,
+                      child: GalleryItem(e, 'post-image'),
+                    ),
+                  ),
                 ),
-              ),
-            ),
           ],
         ),
       ),

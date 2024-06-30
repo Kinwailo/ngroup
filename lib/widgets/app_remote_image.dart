@@ -13,8 +13,8 @@ class RemoteImage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    var index = ref.watch(postImagesProvider.select((images) => images.indexOf(
-        images.firstWhere((e) => e.url == url, orElse: () => PostImage()))));
+    var index = ref.watch(postImagesProvider
+        .select((images) => images.indexWhere((e) => e.url == url)));
     return index == -1
         ? const Align(
             alignment: Alignment.center,
