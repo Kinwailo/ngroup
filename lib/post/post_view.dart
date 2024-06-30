@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -444,12 +448,60 @@ TextSpan _senderTextSpan(BuildContext context, PostData data,
   );
 }
 
-mixin NetworkImageFactory on WidgetFactory {
+class NetworkImageFactory extends WidgetFactory with UrlLauncherFactory {
+  NetworkImageFactory(this.ref, this.postData);
+
+  final WidgetRef ref;
+  final PostData postData;
+  final urls = <String>[];
+
+  PostImagesNotifier? notifier;
+
+  static final HttpClient _httpClient = HttpClient()..autoUncompress = false;
+
+  Future<void> getData(String url) async {
+    var resolved = Uri.base.resolve(url);
+    var request = await _httpClient.getUrl(resolved);
+    var response = await request.close();
+    if (response.statusCode != HttpStatus.ok) {
+      await response.drain<List<int>>(<int>[]);
+      return;
+    }
+    var bytes = await consolidateHttpClientResponseBytes(response);
+    var regex = RegExp(r'(?<=\/)[^\/\?#]+(?=[^\/]*$)');
+    var filename = regex.firstMatch(url)?[0] ?? 'image.jpg';
+    if (!filename.contains('.')) {
+      var filename2 = url.substring(0, url.lastIndexOf('/'));
+      filename2 = regex.firstMatch(filename2)?[0] ?? 'image.jpg';
+      if (filename2.contains('.')) filename = filename2;
+    }
+    var index = urls.indexOf(url);
+    var image = PostImage()
+      ..data = bytes
+      ..filename = filename
+      ..url = url
+      ..image = MemoryImage(bytes);
+    postData.body?.images.add(image);
+    notifier!.addImage(image, postData.index, index);
+  }
+
   @override
-  Widget? buildImageWidget(BuildTree meta, ImageSource src) {
-    final url = src.url;
+  Widget? buildImage(BuildTree tree, ImageMetadata data) {
+    var src = data.sources.firstOrNull;
+    if (src == null) {
+      return null;
+    }
+    var url = src.url;
     if (!url.startsWith(RegExp('https?://'))) {
-      return super.buildImageWidget(meta, src);
+      return super.buildImageWidget(tree, src);
+    }
+    if (!kIsWeb) {
+      notifier ??= ref.read(postImagesProvider.notifier);
+      var image = postData.body?.images.firstWhereOrNull((e) => e.url == url);
+      if (image == null) {
+        urls.add(url);
+        getData(url);
+      }
     }
     return RemoteImage(
       url,
@@ -458,9 +510,6 @@ mixin NetworkImageFactory on WidgetFactory {
     );
   }
 }
-
-class CustomWidgetFactory extends WidgetFactory
-    with NetworkImageFactory, UrlLauncherFactory {}
 
 class PostBody extends HookConsumerWidget {
   const PostBody(this.data, {super.key});
@@ -481,7 +530,7 @@ class PostBody extends HookConsumerWidget {
       quote = data.parent;
     }
 
-    final showHtml = useState(false);
+    final showHtml = useState(data.html);
 
     var quoteBody = [
       if (quote != null) PostQuote(quote),
@@ -498,7 +547,7 @@ class PostBody extends HookConsumerWidget {
                   style: const TextStyle(
                       color: Colors.blueAccent, fontWeight: FontWeight.bold),
                   recognizer: TapGestureRecognizer()
-                    ..onTap = () => showHtml.value = true),
+                    ..onTap = () => data.html = showHtml.value = true),
               const TextSpan(text: ' version\n')
             ],
           ),
@@ -510,7 +559,9 @@ class PostBody extends HookConsumerWidget {
               textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
           child: HtmlWidget(
             body!.html!,
-            factoryBuilder: () => CustomWidgetFactory(),
+            buildAsync: false,
+            enableCaching: true,
+            factoryBuilder: () => NetworkImageFactory(ref, data),
           ),
         )
       else if (body != null && body.text.isNotEmpty && !showHtml.value)
@@ -529,7 +580,7 @@ class PostBody extends HookConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: quoteBody),
         if (body.links.any((e) => e.enabled)) PostLinkPreviews(data),
-        if (body.images.isNotEmpty) PostImages(data),
+        if (body.images.isNotEmpty && !data.html) PostImages(data),
         if (body.files.isNotEmpty) PostFiles(data),
         if (state.reply
             .where((e) => e.state.inside)
@@ -884,15 +935,15 @@ class PostImages extends ConsumerWidget {
           spacing: 4,
           runSpacing: 4,
           children: [
-            ...data.body!.images.map(
-              (e) => Card(
+            ...data.body!.images.mapIndexed(
+              (index, e) => Card(
                 shape: RoundedRectangleBorder(
                     side:
                         BorderSide(color: colorScheme.outline.withOpacity(0.4)),
                     borderRadius: BorderRadius.circular(8)),
                 child: SizedBox(
                   height: Settings.smallPreview.val ? 100 : null,
-                  child: GalleryItem(e.id, 'post-image'),
+                  child: GalleryItem(index, 'post-image'),
                 ),
               ),
             ),

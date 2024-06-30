@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../post/gallery_view.dart';
+import '../post/post_controller.dart';
+
 class RemoteImage extends HookConsumerWidget {
   const RemoteImage(this.url, {super.key, this.width, this.height});
 
@@ -10,10 +13,16 @@ class RemoteImage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Image.network(
-      url,
-      width: width,
-      height: height,
-    );
+    var index = ref.watch(postImagesProvider.select((images) => images.indexOf(
+        images.firstWhere((e) => e.url == url, orElse: () => PostImage()))));
+    return index == -1
+        ? const Align(
+            alignment: Alignment.center,
+            child: SizedBox.square(
+              dimension: 50,
+              child: CircularProgressIndicator(),
+            ),
+          )
+        : GalleryItem(index, url);
   }
 }

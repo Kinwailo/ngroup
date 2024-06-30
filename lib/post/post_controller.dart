@@ -59,6 +59,7 @@ class PostData {
   GroupOptions options;
   var index = -1;
   String userAgent = '';
+  bool html = false;
 }
 
 enum PostLoadState { waiting, loading, toOutside, loaded, error }
@@ -96,6 +97,7 @@ class PostImage {
   late ImageProvider image;
   Uint8List? data;
   var filename = '';
+  String? url;
   var id = 0;
   var post = 0;
   var index = 0;
@@ -112,7 +114,20 @@ class PostImagesNotifier extends Notifier<List<PostImage>> {
     return [];
   }
 
-  void add(List<PostImage> images, int post) {
+  void addImage(PostImage image, int post, int index) {
+    var imageList = [...state];
+    imageList.add(image
+      ..id = imageList.length
+      ..post = post
+      ..index = index);
+    imageList.sort((a, b) {
+      var cmp = a.post.compareTo(b.post);
+      return cmp != 0 ? cmp : a.index.compareTo(b.index);
+    });
+    state = imageList;
+  }
+
+  void addList(List<PostImage> images, int post) {
     var imageList = [...state];
     for (var (index, image) in images.indexed) {
       imageList.add(image
@@ -350,7 +365,7 @@ class PostsLoader {
       if (p.body != null) {
         p.state.load = PostLoadState.loaded;
         progress.value++;
-        ref.read(postImagesProvider.notifier).add(p.body!.images, p.index);
+        ref.read(postImagesProvider.notifier).addList(p.body!.images, p.index);
         ref.invalidate(postChangeProvider(p.post.messageId));
         if (!p.state.inside) _getLinkPreview(p, cancel);
       }
@@ -431,7 +446,9 @@ class PostsLoader {
     if (data.state.visible) markRead(data);
 
     if (data.state.load != PostLoadState.error) {
-      ref.read(postImagesProvider.notifier).add(data.body!.images, data.index);
+      ref
+          .read(postImagesProvider.notifier)
+          .addList(data.body!.images, data.index);
       progress.value++;
 
       _checkInside(data);

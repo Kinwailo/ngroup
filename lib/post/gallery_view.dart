@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -27,8 +28,9 @@ class GalleryView extends ConsumerWidget {
           maxCrossAxisExtent: 200,
           mainAxisSpacing: 4,
           crossAxisSpacing: 4,
-          children:
-              images.map((e) => GalleryItem(e.id, 'gallery-image')).toList(),
+          children: images
+              .mapIndexed((index, e) => GalleryItem(index, 'gallery-image'))
+              .toList(),
         ),
       ),
     );
