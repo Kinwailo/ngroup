@@ -51,11 +51,11 @@ class RemoteImage extends HookConsumerWidget {
                         imgHeight.value = height!;
                       } else {
                         imgWidth.value = width!;
-                        imgHeight.value *= width! / msg["width"];
+                        imgHeight.value = msg["height"] * width! / msg["width"];
                       }
                     } else {
                       if (height != null) {
-                        imgWidth.value *= height! / msg["height"];
+                        imgWidth.value = msg["width"] * height! / msg["height"];
                         imgHeight.value = height!;
                       } else {
                         imgWidth.value = msg["width"] < constraints.maxWidth
