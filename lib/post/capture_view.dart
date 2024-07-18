@@ -100,19 +100,19 @@ class CaptureView extends HookConsumerWidget {
         actions: [
           FloatingActionButton.small(
             heroTag: null,
-            backgroundColor: colorScheme.surfaceVariant,
+            backgroundColor: colorScheme.surfaceContainerHighest,
             child: const Icon(Icons.sms),
             onPressed: () => ref.read(postsLoader).share(),
           ),
           FloatingActionButton.small(
             heroTag: null,
-            backgroundColor: colorScheme.surfaceVariant,
+            backgroundColor: colorScheme.surfaceContainerHighest,
             child: const Icon(Icons.html),
             onPressed: () => ref.read(postsLoader).export(),
           ),
           FloatingActionButton.small(
             heroTag: null,
-            backgroundColor: colorScheme.surfaceVariant,
+            backgroundColor: colorScheme.surfaceContainerHighest,
             child: const Icon(Icons.image),
             onPressed: () => ref
                 .read(postsLoader)

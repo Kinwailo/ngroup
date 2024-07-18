@@ -90,7 +90,7 @@ class ProgressDialog {
                                   style: TextStyle(
                                     fontSize:
                                         theme.textTheme.bodyMedium!.fontSize!,
-                                    color: theme.colorScheme.onBackground,
+                                    color: theme.colorScheme.onSurface,
                                     fontWeight: FontWeight.normal,
                                   ),
                                 );

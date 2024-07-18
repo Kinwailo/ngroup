@@ -54,8 +54,8 @@ class TwoPane extends HookConsumerWidget {
             child: SplitView(
               viewMode: SplitViewMode.Horizontal,
               gripSize: 8,
-              gripColor: theme.colorScheme.surfaceVariant,
-              gripColorActive: theme.colorScheme.surfaceVariant,
+              gripColor: theme.colorScheme.surfaceContainerHighest,
+              gripColorActive: theme.colorScheme.surfaceContainerHighest,
               indicator: SplitIndicator(
                 viewMode: SplitViewMode.Horizontal,
                 color: theme.colorScheme.tertiary,
@@ -96,7 +96,7 @@ class TwoPane extends HookConsumerWidget {
 
         return BottomAppBar(
           elevation: 2,
-          color: theme.colorScheme.surfaceVariant,
+          color: theme.colorScheme.surfaceContainerHighest,
           shape: const LongCircularNotchedRectangle(),
           notchMargin: 5,
           child: Row(

@@ -2,13 +2,17 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../core/adaptive.dart';
+import '../core/html_simplifier.dart';
 import '../settings/settings.dart';
+import '../widgets/remote_image.dart';
 import 'write_controller.dart';
 
 class WriteView extends HookConsumerWidget {
@@ -19,7 +23,10 @@ class WriteView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var controller = ref.read(writeController);
+
     useListenable(controller.data);
+    useListenable(controller.htmlData);
+
     return SingleChildScrollView(
       controller: ScrollController(),
       child: MediaQuery(
@@ -32,6 +39,8 @@ class WriteView extends HookConsumerWidget {
             children: [
               const WriteIdentity(),
               const WriteContent(),
+              if (controller.htmlData.value.isNotEmpty)
+                const WriteHtmlContext(),
               const WriteSignature(),
               if (controller.data.value != null) const WriteQuote(),
               const WriteAttachment(),
@@ -124,6 +133,7 @@ class WriteContent extends HookConsumerWidget {
     var controller = ref.read(writeController);
     useListenable(controller.body);
     useListenable(controller.files);
+    useListenable(controller.htmlData);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(8),
@@ -135,11 +145,13 @@ class WriteContent extends HookConsumerWidget {
               decoration: InputDecoration(
                 labelText: 'Content',
                 errorText: controller.body.text.isNotEmpty ||
-                        controller.files.value.isNotEmpty
+                        controller.files.value.isNotEmpty ||
+                        controller.htmlData.value.isNotEmpty
                     ? null
                     : 'Content or attachment is empty!',
               ),
               controller: controller.body,
+              contextMenuBuilder: controller.contextMenuBuilder,
             ),
             Align(
               alignment: AlignmentDirectional.topEnd,
@@ -148,6 +160,109 @@ class WriteContent extends HookConsumerWidget {
                 icon: const Icon(Icons.clear),
                 onPressed:
                     controller.body.text.isEmpty ? null : controller.body.clear,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class NetworkImageFactory extends WidgetFactory {
+  @override
+  Widget? buildImage(BuildTree tree, ImageMetadata data) {
+    var src = data.sources.firstOrNull;
+    if (src == null) {
+      return null;
+    }
+    var url = src.url;
+    if (!url.startsWith(RegExp('https?://'))) {
+      return super.buildImageWidget(tree, src);
+    }
+    return kIsWeb
+        ? RemoteImage(
+            url,
+            width: src.width,
+            height: src.height,
+          )
+        : Image.network(
+            url,
+            width: src.width,
+            height: src.height,
+          );
+  }
+}
+
+class WriteHtmlContext extends HookConsumerWidget {
+  const WriteHtmlContext({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    var controller = ref.read(writeController);
+    final tabController = useTabController(initialLength: 2);
+    useListenable(tabController);
+    useListenable(controller.htmlData);
+    useListenable(controller.textData);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TabBar(
+                  tabs: const [
+                    Tab(text: 'Html', height: 24),
+                    Tab(text: 'Text', height: 24),
+                  ],
+                  labelStyle: Theme.of(context).textTheme.bodySmall,
+                  controller: tabController,
+                  padding: const EdgeInsets.only(top: 8, bottom: 4),
+                ),
+                if (tabController.index == 0)
+                  Text.rich(
+                    TextSpan(
+                        text: 'Simplify html',
+                        style: const TextStyle(
+                            color: Colors.blueAccent,
+                            fontWeight: FontWeight.bold),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => controller.htmlData.value =
+                              HtmlSimplifier.simplifyHtml(
+                                  controller.htmlData.value)),
+                    textAlign: TextAlign.center,
+                  ),
+                if (tabController.index == 0)
+                  HtmlWidget(
+                    controller.htmlData.value,
+                    buildAsync: false,
+                    enableCaching: true,
+                    factoryBuilder: () => NetworkImageFactory(),
+                  ),
+                if (tabController.index == 1)
+                  Text.rich(
+                    TextSpan(
+                        text: 'Convert from html',
+                        style: const TextStyle(
+                            color: Colors.blueAccent,
+                            fontWeight: FontWeight.bold),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => controller.textData.value =
+                              HtmlSimplifier.textifyHtml(
+                                  controller.htmlData.value)),
+                    textAlign: TextAlign.center,
+                  ),
+                if (tabController.index == 1) Text(controller.textData.value),
+              ],
+            ),
+            Align(
+              alignment: AlignmentDirectional.topEnd,
+              child: IconButton(
+                splashRadius: 20,
+                icon: const Icon(Icons.clear),
+                onPressed: controller.clearHtmlData,
               ),
             ),
           ],
@@ -178,8 +293,9 @@ class WriteSignature extends HookConsumerWidget {
             Align(
               alignment: AlignmentDirectional.topEnd,
               child: Checkbox(
-                  value: controller.enableSignature.value,
-                  onChanged: (v) => controller.enableSignature.value = v!),
+                value: controller.enableSignature.value,
+                onChanged: (v) => controller.enableSignature.value = v!,
+              ),
             ),
           ],
         ),

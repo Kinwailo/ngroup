@@ -115,7 +115,7 @@ class MasterPane extends HookConsumerWidget {
           var noGroup = ref.watch(selectedGroupProvider) == -1;
           return BottomAppBar(
             elevation: 2,
-            color: theme.colorScheme.surfaceVariant,
+            color: theme.colorScheme.surfaceContainerHighest,
             shape: const LongCircularNotchedRectangle(),
             notchMargin: 5,
             child: Padding(
@@ -211,7 +211,7 @@ class DetailPane extends HookConsumerWidget {
           var data = ref.read(postsLoader).getPostData(postId);
           return BottomAppBar(
             elevation: 2,
-            color: theme.colorScheme.surfaceVariant,
+            color: theme.colorScheme.surfaceContainerHighest,
             shape: const LongCircularNotchedRectangle(),
             notchMargin: 5,
             child: Padding(

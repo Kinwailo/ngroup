@@ -17,6 +17,7 @@ import 'package:fwfh_url_launcher/fwfh_url_launcher.dart';
 
 import '../core/adaptive.dart';
 import '../core/block_painter.dart';
+import '../core/html_simplifier.dart';
 import '../core/string_utils.dart';
 import '../core/datetime_utils.dart';
 import '../core/theme.dart';
@@ -66,7 +67,6 @@ class PostView extends HookConsumerWidget {
               padding: const EdgeInsets.all(4),
               child: CustomMaterialIndicator(
                 displacement: 20,
-                withRotation: false,
                 backgroundColor: Colors.transparent,
                 onRefresh: () async {
                   Future.delayed(
@@ -81,7 +81,7 @@ class PostView extends HookConsumerWidget {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                              color: colorScheme.surfaceVariant,
+                              color: colorScheme.surfaceContainerHighest,
                               shape: BoxShape.circle,
                               border: Border.all(
                                   color: colorScheme.outline.withOpacity(0.4))),
@@ -200,7 +200,7 @@ class PostNext extends HookConsumerWidget {
           : Card(
               key: ValueKey(text),
               elevation: 2,
-              color: colorScheme.surfaceVariant,
+              color: colorScheme.surfaceContainerHighest,
               shape: RoundedRectangleBorder(
                   side: BorderSide(color: colorScheme.outline.withOpacity(0.4)),
                   borderRadius: BorderRadius.circular(8)),
@@ -530,42 +530,78 @@ class PostBody extends HookConsumerWidget {
     var notifier = ref.read(postImagesProvider.notifier);
     var images = ref.read(postImagesProvider);
 
-    final showHtml = useState(data.html);
+    final htmlState = useState(data.htmlState);
+    var showHtml = htmlState.value == PostHtmlState.html ||
+        htmlState.value == PostHtmlState.simplify;
+    var textStyle =
+        const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold);
+    onTap(PostHtmlState v) => TapGestureRecognizer()
+      ..onTap = () => data.htmlState = htmlState.value = v;
 
     var quoteBody = [
       if (quote != null) PostQuote(quote),
-      if (body?.html != null && !showHtml.value)
+      if (body?.html != null)
         Text.rich(
           TextSpan(
-            text: 'Switch to ',
+            text: 'Switch to [ ',
             style: TextStyle(
                 color: colorScheme.onPrimaryContainer,
                 fontWeight: FontWeight.bold),
             children: [
               TextSpan(
-                  text: 'html',
-                  style: const TextStyle(
-                      color: Colors.blueAccent, fontWeight: FontWeight.bold),
-                  recognizer: TapGestureRecognizer()
-                    ..onTap = () => data.html = showHtml.value = true),
-              const TextSpan(text: ' version\n')
+                text: 'text',
+                style: htmlState.value == PostHtmlState.text ? null : textStyle,
+                recognizer: htmlState.value == PostHtmlState.text
+                    ? null
+                    : onTap(PostHtmlState.text),
+              ),
+              const TextSpan(text: ' | '),
+              TextSpan(
+                text: 'html',
+                style: htmlState.value == PostHtmlState.html ? null : textStyle,
+                recognizer: htmlState.value == PostHtmlState.html
+                    ? null
+                    : onTap(PostHtmlState.html),
+              ),
+              const TextSpan(text: ' | '),
+              TextSpan(
+                text: 'simplify',
+                style: htmlState.value == PostHtmlState.simplify
+                    ? null
+                    : textStyle,
+                recognizer: htmlState.value == PostHtmlState.simplify
+                    ? null
+                    : onTap(PostHtmlState.simplify),
+              ),
+              const TextSpan(text: ' | '),
+              TextSpan(
+                text: 'textify',
+                style:
+                    htmlState.value == PostHtmlState.textify ? null : textStyle,
+                recognizer: htmlState.value == PostHtmlState.textify
+                    ? null
+                    : onTap(PostHtmlState.textify),
+              ),
+              const TextSpan(text: ' ] version\n')
             ],
           ),
           textScaler: TextScaler.linear(Settings.contentScale.val / 100),
         ),
-      if (body?.html != null && showHtml.value)
+      if (showHtml)
         MediaQuery(
           data: MediaQuery.of(context).copyWith(
               textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
           child: HtmlWidget(
-            body!.html!,
+            htmlState.value == PostHtmlState.html
+                ? body?.html ?? ''
+                : HtmlSimplifier.simplifyHtml(body?.html ?? ''),
             buildAsync: false,
             enableCaching: true,
             factoryBuilder: () =>
                 NetworkImageFactory(ref, data.index, notifier, images),
           ),
         )
-      else if (body != null && body.text.isNotEmpty && !showHtml.value)
+      else if (body != null && body.text.isNotEmpty)
         PostBodyText(data, false),
     ];
 
@@ -581,7 +617,7 @@ class PostBody extends HookConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: quoteBody),
         if (body.links.any((e) => e.enabled)) PostLinkPreviews(data),
-        if (body.images.isNotEmpty && !data.html) PostImages(data),
+        if (body.images.isNotEmpty) PostImages(data),
         if (body.files.isNotEmpty) PostFiles(data),
         if (state.reply
             .where((e) => e.state.inside)
@@ -745,7 +781,9 @@ class PostBodyText extends HookConsumerWidget {
     final more = useState(false);
     final clearSelection = useState(0);
 
-    var text = data.body?.text ?? '';
+    var text = data.htmlState == PostHtmlState.textify
+        ? HtmlSimplifier.textifyHtml(data.body?.html ?? '')
+        : data.body?.text ?? '';
     if (short) text = text.noLinebreak;
     text += ' ';
     var hide = Settings.hideText.val;
@@ -980,7 +1018,7 @@ class PostLinkPreviews extends StatelessWidget {
           itemBuilder: (_, index) {
             var e = links[index];
             return Card(
-              color: colorScheme.surfaceVariant,
+              color: colorScheme.surfaceContainerHighest,
               shape: RoundedRectangleBorder(
                   side: BorderSide(color: colorScheme.outline.withOpacity(0.4)),
                   borderRadius: BorderRadius.circular(8)),

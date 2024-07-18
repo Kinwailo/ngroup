@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:universal_io/io.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 import 'package:image/image.dart' as img;
 
 import '../database/database.dart';
@@ -54,6 +55,9 @@ class WriteController {
   var references = <String>[];
   var sendable = ValueNotifier(false);
 
+  var htmlData = ValueNotifier('');
+  var textData = ValueNotifier('');
+
   var files = ValueNotifier(<PlatformFile>[]);
   var selectedFile = ValueNotifier<PlatformFile?>(null);
   var imageData = <PlatformFile, ImageData>{};
@@ -68,6 +72,7 @@ class WriteController {
     email.addListener(_updateSendable);
     body.addListener(_updateSendable);
     files.addListener(_updateSendable);
+    htmlData.addListener(_updateSendable);
 
     ref.listen(selectedGroupProvider, (_, groupId) {
       _setGroupIdentity(groupId);
@@ -86,7 +91,9 @@ class WriteController {
     sendable.value = name.text.isNotEmpty &&
         email.text.isNotEmpty &&
         subject.text.isNotEmpty &&
-        (body.text.isNotEmpty || files.value.isNotEmpty) &&
+        (body.text.isNotEmpty ||
+            files.value.isNotEmpty ||
+            htmlData.value.isNotEmpty) &&
         !resizing.value;
   }
 
@@ -125,6 +132,48 @@ class WriteController {
     };
   }
 
+  Widget contextMenuBuilder(BuildContext context, EditableTextState state) {
+    var cause = SelectionChangedCause.toolbar;
+    return AdaptiveTextSelectionToolbar.editable(
+      anchors: state.contextMenuAnchors,
+      clipboardStatus: state.clipboardStatus.value,
+      onCopy: () => state.copySelection(cause),
+      onCut: () => state.cutSelection(cause),
+      onPaste: () async {
+        var reader = await SystemClipboard.instance?.read();
+        if (reader == null) {
+          state.pasteText(cause);
+        } else {
+          var text = await reader.readValue(Formats.plainText);
+          if (text != null) {
+            var html = await reader.readValue(Formats.htmlText);
+            if (html == null) {
+              state.pasteText(cause);
+            } else {
+              textData.value = text;
+              htmlData.value = html;
+            }
+          }
+          state.hideToolbar();
+        }
+      },
+      onSelectAll: () => state.selectAll(cause),
+      onLookUp: null,
+      onSearchWeb: null,
+      onShare: null,
+      onLiveTextInput: null,
+    );
+  }
+
+  void clearHtmlData() {
+    htmlData.value = '';
+    if (textData.value.isNotEmpty) {
+      body.text += body.text.isNotEmpty ? '\n\n' : '';
+      body.text += textData.value;
+      textData.value = '';
+    }
+  }
+
   void create(PostData? data) {
     this.data.value = data;
 
@@ -142,6 +191,8 @@ class WriteController {
         data == null ? [] : [...data.post.references, data.post.messageId];
     files.value = [];
     selectedFile.value = null;
+    htmlData.value = '';
+    textData.value = '';
 
     enableSignature.value = true;
     enableQuote.value = true;
@@ -233,6 +284,15 @@ class WriteController {
     if (group == null) throw Exception('Cannot load group data.');
 
     var content = body.text;
+    var html = htmlData.value;
+
+    if (content.isNotEmpty) {
+      html = '<p>${content.replaceAll('\n', '</br>')}</p>$html';
+    }
+    if (textData.value.isNotEmpty) {
+      content += content.isNotEmpty ? '\n\n' : '';
+      content += textData.value;
+    }
     if (enableSignature.value && signature.text != '') {
       content += '\n\n--\n${signature.text}';
     }
@@ -241,6 +301,8 @@ class WriteController {
           '\n\n${data.value?.post.from ?? 'Someone'} wrote: \n${quote.text}';
     }
     if (files.value.isNotEmpty) content += '\n';
+    content = latin1.decode(utf8.encode(content));
+    html = latin1.decode(utf8.encode(html));
 
     try {
       var pf = 'Web';
@@ -258,8 +320,17 @@ class WriteController {
         ..addHeader('Newsgroups', group.name)
         ..addHeader('References', references.join(' '))
         ..addHeader('User-Agent', 'NGroup @$pf')
-        ..subject = subject.text
-        ..text = latin1.decode(utf8.encode(content));
+        ..subject = subject.text;
+
+      if (htmlData.value.isEmpty) {
+        builder.text = content;
+      } else {
+        builder
+          ..addTextPlain(content, transferEncoding: TransferEncoding.eightBit)
+          ..addTextHtml(html, transferEncoding: TransferEncoding.eightBit)
+          ..setContentType(MediaSubtype.multipartAlternative.mediaType);
+      }
+
       for (var e in files.value) {
         var bytes = imageData[e]?.bytes;
         if (bytes == null) continue;

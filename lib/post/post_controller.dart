@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/io_client.dart';
 import 'package:linkify/linkify.dart';
-import 'package:metadata_fetch/metadata_fetch.dart';
+import 'package:metadata_fetch_plus/metadata_fetch_plus.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -49,6 +49,8 @@ final postImagesProvider =
 
 final postListScrollProvider = Provider<ScrollControl>((_) => ScrollControl());
 
+enum PostHtmlState { text, html, simplify, textify }
+
 class PostData {
   PostData(this.post, this.state, this.options);
   Post post;
@@ -59,7 +61,7 @@ class PostData {
   GroupOptions options;
   var index = -1;
   String userAgent = '';
-  bool html = false;
+  PostHtmlState htmlState = PostHtmlState.text;
 }
 
 enum PostLoadState { waiting, loading, toOutside, loaded, error }
@@ -425,6 +427,7 @@ class PostsLoader {
     if (!Settings.shortReply.val) return;
     data.state.inside = data.body!.images.isEmpty &&
         data.body!.files.isEmpty &&
+        data.body!.html == null &&
         (data.body!.text.length <= Settings.shortReplySize.val);
   }
 

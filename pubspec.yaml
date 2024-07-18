@@ -34,13 +34,13 @@ dependencies:
   visibility_detector: ^0.3.3
   share_plus: ^7.2.2
   file_picker: ^6.1.1
-  screenshot: ^2.1.0
+  screenshot: ^3.0.0
   photo_view: ^0.14.0
   smooth_page_indicator: ^1.1.0
   sanitize_filename: ^1.0.5
   linkify: ^5.0.0
-  http: ^0.13.6
-  metadata_fetch: ^0.4.1
+  http: ^1.2.0
+  metadata_fetch_plus: ^1.0.0
   recase: ^4.1.0
   custom_refresh_indicator: ^3.1.0
   flutter_staggered_grid_view: ^0.7.0
@@ -53,6 +53,10 @@ dependencies:
   flutter_widget_from_html_core: ^0.15.1
   fwfh_url_launcher: ^0.9.1
   webviewimage: ^0.0.4
+  super_clipboard: ^0.8.17
+  html: ^0.15.4
+  validators: ^3.0.0
+  html_unescape: ^2.0.0
 
 dev_dependencies:
   flutter_test:

@@ -66,7 +66,7 @@ class ThreadView extends HookConsumerWidget {
       },
       indicatorBuilder: (context, controller) => Container(
         decoration: BoxDecoration(
-            color: colorScheme.surfaceVariant,
+            color: colorScheme.surfaceContainerHighest,
             shape: BoxShape.circle,
             border: Border.all(color: colorScheme.outline.withOpacity(0.4))),
         child: SizedBox.square(
@@ -152,8 +152,8 @@ class ThreadBlockedTile extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
     var color = data.matchIndex % 2 == 0
-        ? colorScheme.background.withOpacity(0.3)
-        : colorScheme.background.withOpacity(0.1);
+        ? colorScheme.surface.withOpacity(0.3)
+        : colorScheme.surface.withOpacity(0.1);
     return CustomPaint(
       painter: BlockPainter(colorScheme.surfaceTint, Colors.yellow),
       child: MediaQuery(
@@ -305,8 +305,8 @@ class ThreadTileContent extends HookConsumerWidget {
     var thread = data.thread;
     var selectedThread = ref.watch(selectedThreadProvider);
     var color = data.matchIndex % 2 == 0
-        ? colorScheme.background
-        : colorScheme.background.withOpacity(0.5);
+        ? colorScheme.surface
+        : colorScheme.surface.withOpacity(0.5);
 
     useListenable(Settings.contentScale);
 
