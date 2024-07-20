@@ -195,13 +195,13 @@ body {
       output.write(exportGalleryBegin);
       for (var image in post.body!.images) {
         var format = '';
-        if (image.filename.contains('.')) {
-          format = image.filename.split('.').last.toLowerCase();
+        if (image.image.filename.contains('.')) {
+          format = image.image.filename.split('.').last.toLowerCase();
         }
         if (!['webp', 'png', 'jpg', 'jpeg', 'gif', 'bmp'].contains(format)) {
           continue;
         }
-        var data = base64Encode(image.data!);
+        var data = base64Encode(image.image.data);
         output.write(exportGalleryMiddle
             .replaceAll(r'$image_format$', format)
             .replaceAll(r'$image_data$', data));

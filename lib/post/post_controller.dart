@@ -86,19 +86,31 @@ class PostBody {
   var files = <PostFile>[];
 }
 
+class ImageData {
+  late ImageProvider image;
+  var data = Uint8List(0);
+  var filename = '';
+}
+
+class PostImageProvider extends MemoryImage {
+  const PostImageProvider(this.data, this.filename) : super(data);
+  final Uint8List data;
+  final String filename;
+}
+
 class PostLinkPreview {
-  ImageProvider? image;
   var enabled = false;
+  var loading = false;
   var ready = false;
   var url = '';
   var title = '';
   var description = '';
+  var isImage = false;
+  PostImageProvider? image;
 }
 
 class PostImage {
-  late ImageProvider image;
-  Uint8List? data;
-  var filename = '';
+  late PostImageProvider image;
   String? url;
   var id = 0;
   var post = 0;
@@ -116,32 +128,31 @@ class PostImagesNotifier extends Notifier<List<PostImage>> {
     return [];
   }
 
-  void addImage(PostImage image, int post, int index) {
+  void addRemoteImage(PostImage image) {
     var imageList = [...state];
-    imageList.add(image
-      ..id = imageList.length
-      ..post = post
-      ..index = index);
-    imageList.sort((a, b) {
-      var cmp = a.post.compareTo(b.post);
-      return cmp != 0 ? cmp : a.index.compareTo(b.index);
-    });
+    if (imageList.any((e) => e.url == image.url)) return;
+    imageList.add(image..id = imageList.length);
+    imageList.sort(compare);
     state = imageList;
   }
 
-  void addList(List<PostImage> images, int post) {
+  void addAttachments(List<PostImage> images) {
     var imageList = [...state];
     for (var (index, image) in images.indexed) {
       imageList.add(image
         ..id = imageList.length
-        ..post = post
         ..index = index);
     }
-    imageList.sort((a, b) {
-      var cmp = a.post.compareTo(b.post);
-      return cmp != 0 ? cmp : a.index.compareTo(b.index);
-    });
+    imageList.sort(compare);
     state = imageList;
+  }
+
+  int compare(PostImage a, PostImage b) {
+    var cmp = a.post.compareTo(b.post);
+    cmp = cmp != 0
+        ? cmp
+        : (a.url == null ? 0 : 1).compareTo((b.url == null ? 0 : 1));
+    return cmp != 0 ? cmp : a.index.compareTo(b.index);
   }
 }
 
@@ -269,6 +280,28 @@ class PostsLoader {
     };
   }
 
+  PostLinkPreview getLinkPreview(String url) {
+    return _loadedLinkPreview[url] ?? PostLinkPreview();
+  }
+
+  void addLinkPreview(String url, int post, int index) {
+    var link = _loadedLinkPreview[url];
+    if (link == null) {
+      link = PostLinkPreview()
+        ..enabled = false
+        ..isImage = true
+        ..url = url;
+      _getLinkPreview(link, post, index);
+    } else if (link.image != null) {
+      var image = PostImage()
+        ..image = link.image!
+        ..url = url
+        ..post = post
+        ..index = index;
+      ref.read(postImagesProvider.notifier).addRemoteImage(image);
+    }
+  }
+
   void select(PostData? data) {
     var selected = ref.read(selectedPostProvider);
     var postId = data?.post.messageId ?? '';
@@ -308,7 +341,8 @@ class PostsLoader {
       var text = p.body?.text ?? '';
       if (p.body?.images.isNotEmpty ?? false) {
         if (text.isNotEmpty) text += ' ';
-        var images = p.body?.images.map((e) => e.filename).join(', ') ?? '';
+        var images =
+            p.body?.images.map((e) => e.image.filename).join(', ') ?? '';
         text += '[image: $images]';
       }
       if (p.body?.files.isNotEmpty ?? false) {
@@ -367,9 +401,9 @@ class PostsLoader {
       if (p.body != null) {
         p.state.load = PostLoadState.loaded;
         progress.value++;
-        ref.read(postImagesProvider.notifier).addList(p.body!.images, p.index);
+        ref.read(postImagesProvider.notifier).addAttachments(p.body!.images);
         ref.invalidate(postChangeProvider(p.post.messageId));
-        if (!p.state.inside) _getLinkPreview(p, cancel);
+        if (!p.state.inside) _getAllLinkPreview(p, cancel);
       }
     }
 
@@ -392,7 +426,7 @@ class PostsLoader {
     var posts = [..._posts];
     for (var data in posts) {
       await _loadBody(data, cancel);
-      if (!data.state.inside) _getLinkPreview(data, cancel);
+      if (!data.state.inside) _getAllLinkPreview(data, cancel);
       if (cancel.value) return;
 
       for (var child in data.state.reply) {
@@ -449,9 +483,7 @@ class PostsLoader {
     if (data.state.visible) markRead(data);
 
     if (data.state.load != PostLoadState.error) {
-      ref
-          .read(postImagesProvider.notifier)
-          .addList(data.body!.images, data.index);
+      ref.read(postImagesProvider.notifier).addAttachments(data.body!.images);
       progress.value++;
 
       _checkInside(data);
@@ -492,19 +524,35 @@ class PostsLoader {
     data.body = _getContent(data, text);
   }
 
+  PostImageProvider _addLinkedImage(
+      String url, Uint8List data, int post, int index) {
+    var image = PostImage()
+      ..image = PostImageProvider(data, url.urlFilename)
+      ..url = url
+      ..post = post
+      ..index = index;
+    ref.read(postImagesProvider.notifier).addRemoteImage(image);
+    return image.image;
+  }
+
   Future<void> _getLinkPreview(
-      PostData data, ValueNotifier<bool> cancel) async {
-    if (cancel.value) return;
+      PostLinkPreview link, int post, int index) async {
+    link.loading = true;
 
-    for (var link in data.body?.links ?? <PostLinkPreview>[]) {
-      if (!link.enabled || link.ready) continue;
+    var client = HttpClient();
+    client.userAgent = 'TelegramBot (like TwitterBot)';
+    var http = IOClient(client);
+    try {
+      var uri = Uri.parse(link.url);
+      var resp = await http.get(uri);
+      var type = resp.headers[HttpHeaders.contentTypeHeader];
+      type = type == null ? '' : ContentType.parse(type).primaryType;
+      link.isImage |= type == 'image';
 
-      var client = HttpClient();
-      client.userAgent = 'TelegramBot (like TwitterBot)';
-      var http = IOClient(client);
-      try {
-        var uri = Uri.parse(link.url);
-        var resp = await http.get(uri);
+      if (link.isImage) {
+        link.image = _addLinkedImage(link.url, resp.bodyBytes, post, index);
+        link.enabled = false;
+      } else {
         var doc = MetadataFetch.responseToDocument(resp);
         var meta = MetadataParser.parse(doc);
 
@@ -518,22 +566,32 @@ class PostsLoader {
             ..description = meta.description ?? '';
           if ((meta.image ?? '').isNotEmpty) {
             resp = await http.get(Uri.parse(meta.image!));
-            link.image = MemoryImage(resp.bodyBytes);
+            link.image = _addLinkedImage(link.url, resp.bodyBytes, post, index);
           }
           if (link.description.isEmpty || link.description == link.title) {
             link.description = meta.url ?? link.url;
           }
-          link.ready = true;
         }
-        ref.invalidate(postChangeProvider(data.post.messageId));
-      } catch (e) {
-        link.enabled = false;
-        ref.invalidate(postChangeProvider(data.post.messageId));
-      } finally {
-        http.close();
-        client.close();
       }
-      _loadedLinkPreview[link.url] = link;
+    } catch (e) {
+      link.enabled = false;
+    } finally {
+      http.close();
+      client.close();
+    }
+    link.loading = false;
+    link.ready = true;
+    _loadedLinkPreview[link.url] = link;
+  }
+
+  Future<void> _getAllLinkPreview(
+      PostData data, ValueNotifier<bool> cancel) async {
+    for (var (index, link)
+        in (data.body?.links ?? <PostLinkPreview>[]).indexed) {
+      if (cancel.value) return;
+      if (!link.enabled || link.loading || link.ready) continue;
+      await _getLinkPreview(link, data.index, index);
+      ref.invalidate(postChangeProvider(data.post.messageId));
     }
   }
 
@@ -575,11 +633,12 @@ class PostsLoader {
       images = mime.allPartsFlat
           // .where((e) => e.getHeaderContentDisposition() != null)
           .where(isImage)
+          .map((e) => PostImageProvider(e.decodeContentBinary() ?? Uint8List(0),
+              e.decodeFileName() ?? 'image.jpg'))
+          .where((e) => e.data.isNotEmpty)
           .map((e) => PostImage()
-            ..data = e.decodeContentBinary()
-            ..filename = e.decodeFileName() ?? 'image.jpg')
-          .where((e) => e.data != null)
-          .map((e) => e..image = MemoryImage(e.data!))
+            ..post = data.index
+            ..image = e)
           .toList();
       files = mime.allPartsFlat
           // .where((e) => e.getHeaderContentDisposition() != null)
@@ -595,19 +654,18 @@ class PostsLoader {
           .toList();
 
       do {
-        var (data, filename) = _getUuencodeData(text);
-        if (data == null) break;
+        var (bytes, filename) = _getUuencodeData(text);
+        if (bytes == null) break;
         text = text.stripUuencode;
         if (filename.contains('.') &&
             ['webp', 'png', 'jpg', 'jpeg', 'jfif', 'gif', 'bmp']
                 .contains(filename.split('.').last.toLowerCase())) {
           images.add(PostImage()
-            ..data = data
-            ..filename = filename
-            ..image = MemoryImage(data));
+            ..post = data.index
+            ..image = PostImageProvider(bytes, filename));
         } else {
           files.add(PostFile()
-            ..data = data
+            ..data = bytes
             ..filename = filename);
         }
       } while (true);
@@ -640,6 +698,14 @@ class PostsLoader {
           ..enabled = kIsWeb ? false : Settings.linkPreview.val
           ..url = e)
         .toList();
+    links.where((e) => e.ready && e.image != null).forEachIndexed(
+          (i, e) =>
+              ref.read(postImagesProvider.notifier).addRemoteImage(PostImage()
+                ..url = e.url
+                ..post = data.index
+                ..index = i
+                ..image = e.image!),
+        );
 
     return PostBody()
       ..text = text

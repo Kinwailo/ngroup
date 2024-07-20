@@ -165,7 +165,7 @@ class GalleryItemView extends HookConsumerWidget {
         ),
         title: Opacity(
           opacity: animation.value,
-          child: Text(images[page.value].filename),
+          child: Text(images[page.value].image.filename),
         ),
         backgroundColor: Colors.black.withOpacity(0.3 * animation.value),
         actions: Adaptive.isDesktop
@@ -308,8 +308,8 @@ class GalleryItemView extends HookConsumerWidget {
   }
 
   void save(PostImage image) async {
-    var filename = sanitizeFilename(image.filename);
-    var mime = MediaType.guessFromFileName(image.filename);
-    Adaptive.saveBinary(image.data!, 'Save Image', filename, mime.text);
+    var filename = sanitizeFilename(image.image.filename);
+    var mime = MediaType.guessFromFileName(image.image.filename);
+    Adaptive.saveBinary(image.image.data, 'Save Image', filename, mime.text);
   }
 }

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -449,40 +447,11 @@ TextSpan _senderTextSpan(BuildContext context, PostData data,
 }
 
 class NetworkImageFactory extends WidgetFactory with UrlLauncherFactory {
-  NetworkImageFactory(this.ref, this.index, this.notifier, this.images);
+  NetworkImageFactory(this.post, this.loader);
 
-  final WidgetRef ref;
-  final int index;
-  final PostImagesNotifier notifier;
-  final List<PostImage> images;
-  final urls = <String>[];
-
-  static final HttpClient _httpClient = HttpClient()..autoUncompress = false;
-
-  Future<void> getData(String url) async {
-    var resolved = Uri.base.resolve(url);
-    var request = await _httpClient.getUrl(resolved);
-    var response = await request.close();
-    if (response.statusCode != HttpStatus.ok) {
-      await response.drain<List<int>>(<int>[]);
-      return;
-    }
-    var bytes = await consolidateHttpClientResponseBytes(response);
-    var regex = RegExp(r'(?<=\/)[^\/\?#]+(?=[^\/]*$)');
-    var filename = regex.firstMatch(url)?[0] ?? 'image.jpg';
-    if (!filename.contains('.')) {
-      var filename2 = url.substring(0, url.lastIndexOf('/'));
-      filename2 = regex.firstMatch(filename2)?[0] ?? 'image.jpg';
-      if (filename2.contains('.')) filename = filename2;
-    }
-    var index = urls.indexOf(url);
-    var image = PostImage()
-      ..data = bytes
-      ..filename = filename
-      ..url = url
-      ..image = MemoryImage(bytes);
-    notifier.addImage(image, index, index);
-  }
+  final int post;
+  final urls = <String>{};
+  final PostsLoader loader;
 
   @override
   Widget? buildImage(BuildTree tree, ImageMetadata data) {
@@ -495,11 +464,9 @@ class NetworkImageFactory extends WidgetFactory with UrlLauncherFactory {
       return super.buildImageWidget(tree, src);
     }
     if (!kIsWeb) {
-      var image = images.firstWhereOrNull((e) => e.url == url);
-      if (image == null) {
-        urls.add(url);
-        getData(url);
-      }
+      Future.delayed(
+          Duration.zero, () => loader.addLinkPreview(url, post, urls.length));
+      urls.add(url);
     }
     return RemoteImage(
       url,
@@ -522,13 +489,12 @@ class PostBody extends HookConsumerWidget {
     var state = data.state;
     var filters = ref.read(filterProvider);
     var blocked = Settings.blockSenders.val.contains(data.parent?.post.from);
-    var quote = ref.read(postsLoader).getQuoteData(data);
+    var loader = ref.read(postsLoader);
+    var quote = loader.getQuoteData(data);
     if ((blocked && Settings.showQuote.val != ShowQuote.never) ||
         (CaptureView.of(context) && ref.read(selectedPostProvider) != '')) {
       quote = data.parent;
     }
-    var notifier = ref.read(postImagesProvider.notifier);
-    var images = ref.read(postImagesProvider);
 
     final htmlState = useState(data.htmlState);
     var showHtml = htmlState.value == PostHtmlState.html ||
@@ -597,8 +563,7 @@ class PostBody extends HookConsumerWidget {
                 : HtmlSimplifier.simplifyHtml(body?.html ?? ''),
             buildAsync: false,
             enableCaching: true,
-            factoryBuilder: () =>
-                NetworkImageFactory(ref, data.index, notifier, images),
+            factoryBuilder: () => NetworkImageFactory(data.index, loader),
           ),
         )
       else if (body != null && body.text.isNotEmpty)
@@ -766,7 +731,7 @@ TextSpan _linkifyTextSpan(String text) {
     for (var e in linkify(text))
       if (e is LinkableElement)
         TextSpan(
-          text: Uri.decodeComponent(e.text),
+          text: e.text.decodeUrl,
           style: const TextStyle(
             color: Colors.blueAccent,
             decoration: TextDecoration.underline,

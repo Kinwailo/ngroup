@@ -7,6 +7,8 @@ import '../settings/settings.dart';
 extension StringUtils on String {
   String get sender => _extractSender(this);
   String get email => _extractEmail(this);
+  String get urlFilename => _getUrlFilename(this);
+  String get decodeUrl => _decodeUrl(this);
   String get noLinebreak => _noLinebreak(this);
   String get stripSignature => _stripSignature(this);
   String get stripQuote => _stripQuote(this);
@@ -59,6 +61,25 @@ extension StringUtils on String {
     var re = RegExp(r'^(.*)(?:[_ ])<(.*)>$');
     var match = re.firstMatch(from);
     return match?.group(2) ?? from;
+  }
+
+  String _getUrlFilename(String text) {
+    var regex = RegExp(r'(?<=\/)[^\/\?#]+(?=[^\/]*$)');
+    var filename = regex.firstMatch(text)?[0] ?? 'image.jpg';
+    if (!filename.contains('.')) {
+      var filename2 = text.substring(0, text.lastIndexOf('/'));
+      filename2 = regex.firstMatch(filename2)?[0] ?? 'image.jpg';
+      if (filename2.contains('.')) filename = filename2;
+    }
+    return filename;
+  }
+
+  String _decodeUrl(String text) {
+    try {
+      return Uri.decodeComponent(text);
+    } catch (e) {
+      return text;
+    }
   }
 
   String _noLinebreak(String text) {
