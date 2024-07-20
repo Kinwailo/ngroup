@@ -20,6 +20,8 @@ class HtmlSimplifier {
   static const styles =
       'font-style,font-weight,font-size'; //,color,background-color';
 
+  static var pre = false;
+
   static String simplifyHtml(String html) {
     var doc = htmlparser.HtmlParser(html, parseMeta: false).parseFragment();
     _filterNode(doc);
@@ -33,6 +35,15 @@ class HtmlSimplifier {
     var text = HtmlUnescape().convert(doc.outerHtml).stripMultiEmptyLine.trim();
     // print(text);
     return text;
+  }
+
+  static Map<String, String> _getStyle(String? text) {
+    if (text == null) return {};
+    return {
+      for (var v in rtrim(text, ';').split(';').where((e) => e.contains(':')))
+        v.split(':')[0].toLowerCase().trim():
+            v.split(':')[1].toLowerCase().trim()
+    };
   }
 
   static void _filterNode(Node node) {
@@ -50,16 +61,11 @@ class HtmlSimplifier {
       node.attributes.removeWhere((k, _) =>
           !(attributes[node.localName]?.contains(k.toString()) ?? false));
       if (style != null) {
-        var map = {
-          for (var v
-              in rtrim(style, ';').split(';').where((e) => e.contains(':')))
-            v.split(':')[0].trim(): v.split(':')[1].trim()
-        };
+        var map = _getStyle(style);
         map.removeWhere((k, v) => !styles.split(',').contains(k));
         style = map.keys.map((k) => '$k:${map[k]!}').join(';');
         node.attributes['style'] = style;
         if (style.isEmpty) node.attributes.remove('style');
-        // print(style);
       }
       if (tags.split(',').contains(node.localName)) return [node];
       return node.nodes.expand(_filterTag).toList();
@@ -73,22 +79,27 @@ class HtmlSimplifier {
       ..clear()
       ..addAll(nodes);
     node.nodes.forEach(_textNode);
+    pre = false;
   }
 
   static List<Node> _textOnly(Node node) {
     if (node is Text) {
-      var parent = node.parentNode;
-      if (parent is Element && parent.localName == 'pre') return [node];
+      if (pre) return [node];
       return [node..data = node.data.replaceAll(RegExp(r'\s+'), ' ').trim()];
     }
     if (node is Element) {
       if (node.localName == 'img') return [Text('${node.attributes['src']} ')];
       if (node.localName == 'br') return [Text('\n')];
+
+      var whiteSpace = _getStyle(node.attributes['style'])['white-space'];
+      if (node.localName == 'pre' || whiteSpace == 'pre') pre = true;
       var nodes = node.nodes.expand(_textOnly);
+
       return [
         ...nodes,
-        if (nodes.isNotEmpty) Text('\n'),
-        if (node.localName == 'p') Text('\n'),
+        if (node.localName == 'div' && nodes.isNotEmpty) Text('\n'),
+        if (node.localName == 'p') nodes.isEmpty ? Text('\n') : Text('\n\n'),
+        if (node.localName == 'a') Text('${node.attributes['href']} '),
       ];
     }
     return [];
