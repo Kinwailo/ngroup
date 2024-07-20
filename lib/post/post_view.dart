@@ -728,8 +728,13 @@ class PostShortReply extends ConsumerWidget {
 
 TextSpan _linkifyTextSpan(String text) {
   return TextSpan(children: [
-    for (var e in linkify(text))
-      if (e is LinkableElement)
+    for (var e in linkify(text, options: const LinkifyOptions(humanize: false)))
+      if (e is LinkableElement) ...[
+        const WidgetSpan(
+            child: Padding(
+          padding: EdgeInsets.only(left: 2),
+          child: Icon(Icons.link, size: 16),
+        )),
         TextSpan(
           text: e.text.decodeUrl,
           style: const TextStyle(
@@ -739,7 +744,7 @@ TextSpan _linkifyTextSpan(String text) {
           recognizer: TapGestureRecognizer()
             ..onTap = () => launchUrlString(e.url),
         )
-      else
+      ] else
         TextSpan(text: e.text),
   ]);
 }
