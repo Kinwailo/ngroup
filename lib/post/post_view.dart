@@ -495,6 +495,8 @@ class PostBody extends HookConsumerWidget {
         (CaptureView.of(context) && ref.read(selectedPostProvider) != '')) {
       quote = data.parent;
     }
+    var images = ref.watch(postImagesProvider
+        .select((list) => list.any((image) => image.post == data.index)));
 
     final htmlState = useState(data.htmlState);
     var showHtml = htmlState.value == PostHtmlState.html ||
@@ -502,7 +504,10 @@ class PostBody extends HookConsumerWidget {
     var textStyle =
         const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold);
     onTap(PostHtmlState v) => TapGestureRecognizer()
-      ..onTap = () => data.htmlState = htmlState.value = v;
+      ..onTap = () {
+        data.htmlState = htmlState.value = v;
+        if (v == PostHtmlState.textify) loader.addTextifyLinkPreview(data);
+      };
 
     var quoteBody = [
       if (quote != null) PostQuote(quote),
@@ -582,7 +587,7 @@ class PostBody extends HookConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: quoteBody),
         if (body.links.any((e) => e.enabled)) PostLinkPreviews(data),
-        if (body.images.isNotEmpty) PostImages(data),
+        if (images) PostImages(data),
         if (body.files.isNotEmpty) PostFiles(data),
         if (state.reply
             .where((e) => e.state.inside)
@@ -947,7 +952,9 @@ class PostImages extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
-    var images = ref.read(postImagesProvider);
+    var images = ref.watch(postImagesProvider
+        .select((list) => list.where((image) => image.post == data.index)));
+    var allImages = ref.read(postImagesProvider);
     return VisibilityDetector(
       key: Key('${data.post.messageId} image'),
       onVisibilityChanged: (info) {
@@ -958,21 +965,18 @@ class PostImages extends ConsumerWidget {
           spacing: 4,
           runSpacing: 4,
           children: [
-            ...data.body!.images
-                .map((e) => images.indexWhere((img) => e.id == img.id))
-                .where((e) => e != -1)
-                .map(
-                  (e) => Card(
-                    shape: RoundedRectangleBorder(
-                        side: BorderSide(
-                            color: colorScheme.outline.withOpacity(0.4)),
-                        borderRadius: BorderRadius.circular(8)),
-                    child: SizedBox(
-                      height: Settings.smallPreview.val ? 100 : null,
-                      child: GalleryItem(e, 'post-image'),
-                    ),
-                  ),
+            ...images.map(
+              (e) => Card(
+                shape: RoundedRectangleBorder(
+                    side:
+                        BorderSide(color: colorScheme.outline.withOpacity(0.4)),
+                    borderRadius: BorderRadius.circular(8)),
+                child: SizedBox(
+                  height: Settings.smallPreview.val ? 100 : null,
+                  child: GalleryItem(allImages.indexOf(e), 'post-image'),
                 ),
+              ),
+            ),
           ],
         ),
       ),

@@ -15,6 +15,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../core/adaptive.dart';
+import '../core/html_simplifier.dart';
 import '../core/scroll_control.dart';
 import '../core/string_utils.dart';
 import '../database/database.dart';
@@ -302,6 +303,13 @@ class PostsLoader {
     }
   }
 
+  void addTextifyLinkPreview(PostData data) {
+    if (data.body?.html == null) return;
+    var text = HtmlSimplifier.textifyHtml(data.body?.html ?? '');
+    data.body?.links = _getAllLinks(text, data.index);
+    _getAllLinkPreview(data);
+  }
+
   void select(PostData? data) {
     var selected = ref.read(selectedPostProvider);
     var postId = data?.post.messageId ?? '';
@@ -396,14 +404,14 @@ class PostsLoader {
 
   void _loadPostBody(ValueNotifier<bool> cancel) async {
     var posts = [..._posts];
-    for (var p in posts) {
-      _decompressContent(p);
-      if (p.body != null) {
-        p.state.load = PostLoadState.loaded;
+    for (var post in posts) {
+      _decompressContent(post);
+      if (post.body != null) {
+        post.state.load = PostLoadState.loaded;
         progress.value++;
-        ref.read(postImagesProvider.notifier).addAttachments(p.body!.images);
-        ref.invalidate(postChangeProvider(p.post.messageId));
-        if (!p.state.inside) _getAllLinkPreview(p, cancel);
+        ref.read(postImagesProvider.notifier).addAttachments(post.body!.images);
+        ref.invalidate(postChangeProvider(post.post.messageId));
+        if (!post.state.inside) _getAllLinkPreview(post);
       }
     }
 
@@ -426,7 +434,7 @@ class PostsLoader {
     var posts = [..._posts];
     for (var data in posts) {
       await _loadBody(data, cancel);
-      if (!data.state.inside) _getAllLinkPreview(data, cancel);
+      if (!data.state.inside) _getAllLinkPreview(data);
       if (cancel.value) return;
 
       for (var child in data.state.reply) {
@@ -524,6 +532,28 @@ class PostsLoader {
     data.body = _getContent(data, text);
   }
 
+  List<PostLinkPreview> _getAllLinks(String text, int post) {
+    var links = linkify(text, options: const LinkifyOptions(humanize: false))
+        .whereType<UrlElement>()
+        .map((e) => e.url)
+        .where((e) =>
+            const ['http', 'https', 'mailto'].contains(Uri.parse(e).scheme))
+        .toSet()
+        .map((e) => _loadedLinkPreview[e] ??= PostLinkPreview()
+          ..enabled = kIsWeb ? false : Settings.linkPreview.val
+          ..url = e)
+        .toList();
+    links.where((e) => e.ready && e.image != null).forEachIndexed(
+          (i, e) =>
+              ref.read(postImagesProvider.notifier).addRemoteImage(PostImage()
+                ..url = e.url
+                ..post = post
+                ..index = i
+                ..image = e.image!),
+        );
+    return links;
+  }
+
   PostImageProvider _addLinkedImage(
       String url, Uint8List data, int post, int index) {
     var image = PostImage()
@@ -584,11 +614,9 @@ class PostsLoader {
     _loadedLinkPreview[link.url] = link;
   }
 
-  Future<void> _getAllLinkPreview(
-      PostData data, ValueNotifier<bool> cancel) async {
+  Future<void> _getAllLinkPreview(PostData data) async {
     for (var (index, link)
         in (data.body?.links ?? <PostLinkPreview>[]).indexed) {
-      if (cancel.value) return;
       if (!link.enabled || link.loading || link.ready) continue;
       await _getLinkPreview(link, data.index, index);
       ref.invalidate(postChangeProvider(data.post.messageId));
@@ -689,23 +717,7 @@ class PostsLoader {
     }
     if (text == '' && images.isEmpty) text = data.post.subject;
 
-    var links = linkify(text, options: const LinkifyOptions(humanize: false))
-        .whereType<UrlElement>()
-        .map((e) => e.url)
-        .where((e) => const ['http', 'https'].contains(Uri.parse(e).scheme))
-        .toSet()
-        .map((e) => _loadedLinkPreview[e] ??= PostLinkPreview()
-          ..enabled = kIsWeb ? false : Settings.linkPreview.val
-          ..url = e)
-        .toList();
-    links.where((e) => e.ready && e.image != null).forEachIndexed(
-          (i, e) =>
-              ref.read(postImagesProvider.notifier).addRemoteImage(PostImage()
-                ..url = e.url
-                ..post = data.index
-                ..index = i
-                ..image = e.image!),
-        );
+    var links = _getAllLinks(text, data.index);
 
     return PostBody()
       ..text = text
