@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../database/database.dart';
 import '../database/models.dart';
+import '../post/post_controller.dart';
 import 'prefs_value.dart';
 
 class Identity {
@@ -222,11 +223,48 @@ class Settings {
     prompt: 'Enter the value',
   );
 
-  static var linkPreview = PrefsValue(
+  static var htmlMode = PrefsEnum(
+    'htmlMode',
+    PostHtmlState.simplify,
+    PostHtmlState.values,
+    _storage,
+    description: 'Html mode',
+    prompt: 'Select html mode',
+  );
+
+  static var showLinkPreview = PrefsValue(
     'linkPreview',
     true,
     _storage,
-    description: 'Link preview',
+    description: 'Show link preview',
+  );
+
+  static var embedLinkPreview = PrefsValue(
+    'embedLinkPreview',
+    true,
+    _storage,
+    description: 'Embed link preview in post',
+  );
+
+  static var showLinkedImage = PrefsValue(
+    'linkedImage',
+    true,
+    _storage,
+    description: 'Show linked image',
+  );
+
+  static var embedLinkedImage = PrefsValue(
+    'embedLinkedImage',
+    true,
+    _storage,
+    description: 'Embed linked image in post',
+  );
+
+  static var linkedImageMaxWidth = PrefsValue(
+    'linkedImageMaxWidth',
+    4000,
+    _storage,
+    description: 'Maximize width of linked image',
   );
 
   static var smallPreview = PrefsValue(

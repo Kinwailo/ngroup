@@ -50,7 +50,7 @@ final postImagesProvider =
 
 final postListScrollProvider = Provider<ScrollControl>((_) => ScrollControl());
 
-enum PostHtmlState { text, html, simplify, textify }
+enum PostHtmlState { showOptions, text, html, simplify, textify }
 
 class PostData {
   PostData(this.post, this.state, this.options);
@@ -116,6 +116,7 @@ class PostImage {
   var id = 0;
   var post = 0;
   var index = 0;
+  var embed = false;
 }
 
 class PostFile {
@@ -129,12 +130,36 @@ class PostImagesNotifier extends Notifier<List<PostImage>> {
     return [];
   }
 
-  void addRemoteImage(PostImage image) {
+  void removePostImage(int post) {
     var imageList = [...state];
-    if (imageList.any((e) => e.url == image.url)) return;
-    imageList.add(image..id = imageList.length);
-    imageList.sort(compare);
+    imageList.removeWhere((e) => e.post == post);
     state = imageList;
+  }
+
+  void addRemoteImage(PostLinkPreview link, int post, int index,
+      {bool embed = false}) {
+    if (link.image == null) return;
+
+    var image = PostImage()
+      ..image = link.image!
+      ..url = link.url
+      ..post = post
+      ..index = index;
+    if (link.isImage) {
+      if (!Settings.showLinkedImage.val) return;
+      image.embed = Settings.embedLinkedImage.val;
+    } else {
+      if (!Settings.showLinkPreview.val) return;
+      image.embed = Settings.embedLinkPreview.val;
+    }
+    image.embed |= embed;
+
+    var imageList = [...state];
+    if (imageList.none((e) => e.url == image.url && e.post == image.post)) {
+      imageList.add(image..id = imageList.length);
+      imageList.sort(compare);
+      state = imageList;
+    }
   }
 
   void addAttachments(List<PostImage> images) {
@@ -293,19 +318,28 @@ class PostsLoader {
         ..isImage = true
         ..url = url;
       _getLinkPreview(link, post, index);
-    } else if (link.image != null) {
-      var image = PostImage()
-        ..image = link.image!
-        ..url = url
-        ..post = post
-        ..index = index;
-      ref.read(postImagesProvider.notifier).addRemoteImage(image);
+    } else {
+      var imagesController = ref.read(postImagesProvider.notifier);
+      imagesController.addRemoteImage(link, post, index, embed: true);
     }
   }
 
-  void addTextifyLinkPreview(PostData data) {
-    if (data.body?.html == null) return;
-    var text = HtmlSimplifier.textifyHtml(data.body?.html ?? '');
+  void rebuildLinkPreview(PostData data, PostHtmlState state) {
+    if (data.body == null) return;
+
+    var imagesController = ref.read(postImagesProvider.notifier);
+    imagesController.removePostImage(data.index);
+
+    var text = switch (state) {
+      PostHtmlState.text => data.body!.text,
+      PostHtmlState.textify => data.body!.html == null
+          ? null
+          : HtmlSimplifier.textifyHtml(data.body!.html!),
+      PostHtmlState.showOptions => null,
+      PostHtmlState.html => null,
+      PostHtmlState.simplify => null,
+    };
+    if (text == null) return;
     data.body?.links = _getAllLinks(text, data.index);
     _getAllLinkPreview(data);
   }
@@ -536,38 +570,23 @@ class PostsLoader {
     var links = linkify(text, options: const LinkifyOptions(humanize: false))
         .whereType<UrlElement>()
         .map((e) => e.url)
-        .where((e) =>
-            const ['http', 'https', 'mailto'].contains(Uri.parse(e).scheme))
+        .where((e) => const ['http', 'https'].contains(Uri.parse(e).scheme))
         .toSet()
         .map((e) => _loadedLinkPreview[e] ??= PostLinkPreview()
-          ..enabled = kIsWeb ? false : Settings.linkPreview.val
+          ..enabled = !kIsWeb
           ..url = e)
         .toList();
     links.where((e) => e.ready && e.image != null).forEachIndexed(
           (i, e) =>
-              ref.read(postImagesProvider.notifier).addRemoteImage(PostImage()
-                ..url = e.url
-                ..post = post
-                ..index = i
-                ..image = e.image!),
+              ref.read(postImagesProvider.notifier).addRemoteImage(e, post, i),
         );
     return links;
-  }
-
-  PostImageProvider _addLinkedImage(
-      String url, Uint8List data, int post, int index) {
-    var image = PostImage()
-      ..image = PostImageProvider(data, url.urlFilename)
-      ..url = url
-      ..post = post
-      ..index = index;
-    ref.read(postImagesProvider.notifier).addRemoteImage(image);
-    return image.image;
   }
 
   Future<void> _getLinkPreview(
       PostLinkPreview link, int post, int index) async {
     link.loading = true;
+    var imagesController = ref.read(postImagesProvider.notifier);
 
     var client = HttpClient();
     client.userAgent = 'TelegramBot (like TwitterBot)';
@@ -576,12 +595,19 @@ class PostsLoader {
       var uri = Uri.parse(link.url);
       var resp = await http.get(uri);
       var type = resp.headers[HttpHeaders.contentTypeHeader];
-      type = type == null ? '' : ContentType.parse(type).primaryType;
-      link.isImage |= type == 'image';
+      var ctype = ContentType.parse(type ?? '');
+      link.isImage |= ctype.primaryType == 'image';
+      if (ctype.subType == 'octet-stream') {
+        var filename = link.url.urlFilename;
+        link.isImage |= filename.contains('.') &&
+            ['webp', 'png', 'jpg', 'jpeg', 'jfif', 'gif', 'bmp']
+                .contains(filename.split('.').last.toLowerCase());
+      }
 
       if (link.isImage) {
-        link.image = _addLinkedImage(link.url, resp.bodyBytes, post, index);
         link.enabled = false;
+        link.image = PostImageProvider(resp.bodyBytes, link.url.urlFilename);
+        imagesController.addRemoteImage(link, post, index);
       } else {
         var doc = MetadataFetch.responseToDocument(resp);
         var meta = MetadataParser.parse(doc);
@@ -596,7 +622,9 @@ class PostsLoader {
             ..description = meta.description ?? '';
           if ((meta.image ?? '').isNotEmpty) {
             resp = await http.get(Uri.parse(meta.image!));
-            link.image = _addLinkedImage(link.url, resp.bodyBytes, post, index);
+            link.image =
+                PostImageProvider(resp.bodyBytes, meta.image!.urlFilename);
+            imagesController.addRemoteImage(link, post, index);
           }
           if (link.description.isEmpty || link.description == link.title) {
             link.description = meta.url ?? link.url;
@@ -615,10 +643,13 @@ class PostsLoader {
   }
 
   Future<void> _getAllLinkPreview(PostData data) async {
-    for (var (index, link)
-        in (data.body?.links ?? <PostLinkPreview>[]).indexed) {
+    for (var (i, link) in (data.body?.links ?? <PostLinkPreview>[]).indexed) {
+      if (link.ready && link.isImage && link.image != null) {
+        var imagesController = ref.read(postImagesProvider.notifier);
+        imagesController.addRemoteImage(link, data.index, i);
+      }
       if (!link.enabled || link.loading || link.ready) continue;
-      await _getLinkPreview(link, data.index, index);
+      await _getLinkPreview(link, data.index, i);
       ref.invalidate(postChangeProvider(data.post.messageId));
     }
   }

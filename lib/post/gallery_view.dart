@@ -46,20 +46,57 @@ class GalleryItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var images = ref.watch(postImagesProvider);
+    return InkWell(
+      onTap: () => GalleryItemView.show(context, index, tag),
+      child: Hero(
+        tag: '$tag + $index',
+        child: Image(
+          image: images[index].image,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+        ),
+      ),
+    );
+  }
+}
 
-    return index >= images.length
+class GalleryCardItem extends ConsumerWidget {
+  const GalleryCardItem._(this.tag,
+      {this.index, this.id, this.url, this.post, this.border, super.key});
+  const GalleryCardItem.index(int index, String tag, {Key? key, bool? border})
+      : this._(tag, key: key, index: index, border: border);
+  const GalleryCardItem.id(int id, String tag, {Key? key, bool? border})
+      : this._(tag, key: key, id: id, border: border);
+  const GalleryCardItem.url(String url, int post, String tag,
+      {Key? key, bool? border})
+      : this._(tag, key: key, url: url, post: post, border: border);
+
+  final int? index;
+  final int? id;
+  final String? url;
+  final int? post;
+  final String tag;
+  final bool? border;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    var colorScheme = Theme.of(context).colorScheme;
+    var images = ref.watch(postImagesProvider);
+    var i = index ??
+        images.indexWhere(
+          (e) => e.id == id || (e.url == url && e.post == post),
+        );
+    return i < 0 || i >= images.length
         ? const SizedBox.shrink()
-        : InkWell(
-            onTap: () => GalleryItemView.show(context, index, tag),
-            child: Hero(
-              tag: '$tag + $index',
-              child: Image(
-                image: images[index].image,
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
-              ),
-            ),
-          );
+        : border ?? false
+            ? Card(
+                shape: RoundedRectangleBorder(
+                    side:
+                        BorderSide(color: colorScheme.outline.withOpacity(0.4)),
+                    borderRadius: BorderRadius.circular(8)),
+                child: GalleryItem(i, tag),
+              )
+            : GalleryItem(i, tag);
   }
 }
 

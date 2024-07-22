@@ -5,9 +5,10 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:webviewimage/webviewimage.dart';
 
 class RemoteImage extends HookConsumerWidget {
-  const RemoteImage(this.url, {super.key, this.width, this.height});
+  const RemoteImage(this.url, this.post, {super.key, this.width, this.height});
 
   final String url;
+  final int post;
   final double? width;
   final double? height;
 

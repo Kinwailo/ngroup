@@ -7,16 +7,17 @@ import '../post/gallery_view.dart';
 import '../post/post_controller.dart';
 
 class RemoteImage extends HookConsumerWidget {
-  const RemoteImage(this.url, {super.key, this.width, this.height});
+  const RemoteImage(this.url, this.post, {super.key, this.width, this.height});
 
   final String url;
+  final int post;
   final double? width;
   final double? height;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    var index = ref.watch(postImagesProvider
-        .select((images) => images.indexWhere((e) => e.url == url)));
+    var index = ref.watch(postImagesProvider.select(
+        (images) => images.indexWhere((e) => e.url == url && e.post == post)));
     var timeout = false;
     return StatefulBuilder(
       builder: (context, setState) {
@@ -42,7 +43,8 @@ class RemoteImage extends HookConsumerWidget {
                 : SizedBox(
                     width: width,
                     height: height,
-                    child: GalleryItem(index, url),
+                    child: GalleryCardItem.index(index, 'html-image',
+                        border: true),
                   );
       },
     );

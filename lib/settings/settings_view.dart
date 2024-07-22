@@ -67,7 +67,14 @@ class SettingsView extends ConsumerWidget {
               PrefsEnumTile(Settings.showQuote),
               PrefsBoolTile(Settings.shortReply),
               PrefsIntTile(Settings.shortReplySize, min: 10),
-              if (!kIsWeb) PrefsBoolTile(Settings.linkPreview),
+            ]),
+            PrefsGroupTile(children: [
+              PrefsEnumTile(Settings.htmlMode),
+              if (!kIsWeb) PrefsBoolTile(Settings.showLinkPreview),
+              if (!kIsWeb) PrefsBoolTile(Settings.embedLinkPreview),
+              if (!kIsWeb) PrefsBoolTile(Settings.showLinkedImage),
+              if (!kIsWeb) PrefsBoolTile(Settings.embedLinkedImage),
+              if (!kIsWeb) PrefsIntTile(Settings.linkedImageMaxWidth),
               PrefsBoolTile(Settings.smallPreview),
             ]),
             PrefsGroupTile(children: [

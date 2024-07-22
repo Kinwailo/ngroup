@@ -183,6 +183,7 @@ class NetworkImageFactory extends WidgetFactory {
     return kIsWeb
         ? RemoteImage(
             url,
+            -1,
             width: src.width,
             height: src.height,
           )

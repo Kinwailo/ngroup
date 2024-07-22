@@ -470,6 +470,7 @@ class NetworkImageFactory extends WidgetFactory with UrlLauncherFactory {
     }
     return RemoteImage(
       url,
+      post,
       width: src.width,
       height: src.height,
     );
@@ -495,8 +496,6 @@ class PostBody extends HookConsumerWidget {
         (CaptureView.of(context) && ref.read(selectedPostProvider) != '')) {
       quote = data.parent;
     }
-    var images = ref.watch(postImagesProvider
-        .select((list) => list.any((image) => image.post == data.index)));
 
     final htmlState = useState(data.htmlState);
     var showHtml = htmlState.value == PostHtmlState.html ||
@@ -506,7 +505,7 @@ class PostBody extends HookConsumerWidget {
     onTap(PostHtmlState v) => TapGestureRecognizer()
       ..onTap = () {
         data.htmlState = htmlState.value = v;
-        if (v == PostHtmlState.textify) loader.addTextifyLinkPreview(data);
+        loader.rebuildLinkPreview(data, v);
       };
 
     var quoteBody = [
@@ -586,8 +585,13 @@ class PostBody extends HookConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: quoteBody),
-        if (body.links.any((e) => e.enabled)) PostLinkPreviews(data),
-        if (images) PostImages(data),
+        if (Settings.showLinkPreview.val &&
+            !Settings.embedLinkPreview.val &&
+            body.links.any((e) => e.enabled))
+          PostLinkPreviews(data),
+        if (ref.watch(postImagesProvider.select((list) =>
+            list.any((image) => image.post == data.index && !image.embed))))
+          PostImages(data),
         if (body.files.isNotEmpty) PostFiles(data),
         if (state.reply
             .where((e) => e.state.inside)
@@ -731,29 +735,6 @@ class PostShortReply extends ConsumerWidget {
   }
 }
 
-TextSpan _linkifyTextSpan(String text) {
-  return TextSpan(children: [
-    for (var e in linkify(text, options: const LinkifyOptions(humanize: false)))
-      if (e is LinkableElement) ...[
-        const WidgetSpan(
-            child: Padding(
-          padding: EdgeInsets.only(left: 2),
-          child: Icon(Icons.link, size: 16),
-        )),
-        TextSpan(
-          text: e.text.decodeUrl,
-          style: const TextStyle(
-            color: Colors.blueAccent,
-            decoration: TextDecoration.underline,
-          ),
-          recognizer: TapGestureRecognizer()
-            ..onTap = () => launchUrlString(e.url),
-        )
-      ] else
-        TextSpan(text: e.text),
-  ]);
-}
-
 class CustomScrollBehavior extends MaterialScrollBehavior {
   const CustomScrollBehavior();
   @override
@@ -769,7 +750,9 @@ class PostBodyText extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
+    var textTheme = Theme.of(context).textTheme;
     var filters = ref.read(filterProvider);
+    var loader = ref.read(postsLoader);
 
     final more = useState(false);
     final clearSelection = useState(0);
@@ -781,6 +764,164 @@ class PostBodyText extends HookConsumerWidget {
     text += ' ';
     var hide = Settings.hideText.val;
     var blocked = Settings.blockSenders.val.contains(data.parent?.post.from);
+
+    TextSpan linkifyTextSpan(String text) {
+      var urls = <String>{};
+      var linkifies =
+          linkify(text, options: const LinkifyOptions(humanize: false));
+      var spans = linkifies.expand((e) {
+        if (e is! LinkableElement) return [TextSpan(text: e.text)];
+
+        var link = loader.getLinkPreview(e.url);
+        var embed = link.isImage
+            ? Settings.showLinkedImage.val && Settings.embedLinkedImage.val
+            : Settings.showLinkPreview.val && Settings.embedLinkPreview.val;
+        if (!embed || (!link.isImage && link.ready && !link.enabled)) {
+          return [
+            const WidgetSpan(
+                child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 2),
+              child: Icon(Icons.link, size: 16),
+            )),
+            TextSpan(
+              text: link.url.decodeUrl,
+              style: const TextStyle(
+                color: Colors.blueAccent,
+                decoration: TextDecoration.underline,
+              ),
+              recognizer: TapGestureRecognizer()
+                ..onTap = () => launchUrlString(link.url),
+            ),
+          ];
+        } else if (!urls.add(link.url)) {
+          return [];
+        } else if (!link.ready) {
+          return [
+            const WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.ideographic,
+              child: Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: SizedBox.square(
+                    dimension: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+            ),
+            TextSpan(
+              text: link.url.decodeUrl,
+              style: const TextStyle(
+                color: Colors.blueAccent,
+                decoration: TextDecoration.underline,
+              ),
+              recognizer: TapGestureRecognizer()
+                ..onTap = () => launchUrlString(e.url),
+            ),
+          ];
+        } else if (link.isImage) {
+          return [
+            WidgetSpan(
+              child: GalleryCardItem.url(link.url, data.index, 'remote-image',
+                  border: true),
+            )
+          ];
+        } else if (link.enabled) {
+          return [
+            WidgetSpan(
+              child: Card(
+                color: colorScheme.surfaceContainerHighest,
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(color: colorScheme.outline.withOpacity(0.4)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Table(
+                  columnWidths: link.image == null
+                      ? null
+                      : const {0: FixedColumnWidth(80)},
+                  children: [
+                    TableRow(
+                      children: [
+                        if (link.image != null)
+                          TableCell(
+                              verticalAlignment:
+                                  TableCellVerticalAlignment.fill,
+                              child: GalleryCardItem.url(
+                                  e.url, data.index, 'remote-image')),
+                        InkWell(
+                          onTap: () => launchUrlString(link.url),
+                          child: SizedBox(
+                            height: link.image == null ? null : 80,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Ink(
+                                  decoration: BoxDecoration(
+                                      color: colorScheme.primaryContainer
+                                          .withOpacity(0.8)),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4, vertical: 1),
+                                    child: Text(
+                                      link.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: textTheme.bodySmall?.copyWith(
+                                          color:
+                                              colorScheme.onTertiaryContainer,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                                if (link.image != null)
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 4),
+                                      child: Text(
+                                        link.description,
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  )
+                                else if (link.description.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4),
+                                    child: Text(
+                                      link.description,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: textTheme.bodySmall,
+                                    ),
+                                  ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 1),
+                                  child: Text(
+                                    link.url.decodeUrl,
+                                    maxLines: 1,
+                                    style: textTheme.labelSmall?.copyWith(
+                                        color: Colors.blueAccent,
+                                        decoration: TextDecoration.underline),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
+          ];
+        }
+        return [];
+      });
+      return TextSpan(children: spans.cast<InlineSpan>().toList());
+    }
 
     var span = TextSpan(children: [
       if (data.state.inside &&
@@ -797,7 +938,7 @@ class PostBodyText extends HookConsumerWidget {
         )),
         TextSpan(text: text, style: TextStyle(color: colorScheme.error)),
       ],
-      if (!data.state.error) _linkifyTextSpan(text),
+      if (!data.state.error) linkifyTextSpan(text),
       if (data.state.error) ...[
         const TextSpan(text: ' '),
         TextSpan(
@@ -951,10 +1092,8 @@ class PostImages extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    var colorScheme = Theme.of(context).colorScheme;
-    var images = ref.watch(postImagesProvider
-        .select((list) => list.where((image) => image.post == data.index)));
-    var allImages = ref.read(postImagesProvider);
+    var images = ref.watch(postImagesProvider.select((list) =>
+        list.where((image) => image.post == data.index && !image.embed)));
     return VisibilityDetector(
       key: Key('${data.post.messageId} image'),
       onVisibilityChanged: (info) {
@@ -966,15 +1105,9 @@ class PostImages extends ConsumerWidget {
           runSpacing: 4,
           children: [
             ...images.map(
-              (e) => Card(
-                shape: RoundedRectangleBorder(
-                    side:
-                        BorderSide(color: colorScheme.outline.withOpacity(0.4)),
-                    borderRadius: BorderRadius.circular(8)),
-                child: SizedBox(
-                  height: Settings.smallPreview.val ? 100 : null,
-                  child: GalleryItem(allImages.indexOf(e), 'post-image'),
-                ),
+              (e) => SizedBox(
+                height: Settings.smallPreview.val ? 100 : null,
+                child: GalleryCardItem.id(e.id, 'post-image', border: true),
               ),
             ),
           ],
@@ -1064,7 +1197,7 @@ class PostLinkPreviews extends StatelessWidget {
                                         padding: const EdgeInsets.all(4.0),
                                         child: Text(
                                           e.description,
-                                          maxLines: e.image == null ? null : 2,
+                                          maxLines: e.image == null ? 10 : 2,
                                           overflow: e.image == null
                                               ? null
                                               : TextOverflow.ellipsis,
