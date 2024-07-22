@@ -776,7 +776,9 @@ class PostBodyText extends HookConsumerWidget {
         var embed = link.isImage
             ? Settings.showLinkedImage.val && Settings.embedLinkedImage.val
             : Settings.showLinkPreview.val && Settings.embedLinkPreview.val;
-        if (!embed || (!link.isImage && link.ready && !link.enabled)) {
+        if (kIsWeb ||
+            !embed ||
+            (!link.isImage && link.ready && !link.enabled)) {
           return [
             const WidgetSpan(
                 child: Padding(

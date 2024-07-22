@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:webviewimage/webviewimage.dart';
+import 'package:webviewx_plus/webviewx_plus.dart';
 
 class RemoteImage extends HookConsumerWidget {
   const RemoteImage(this.url, this.post, {super.key, this.width, this.height});
@@ -14,8 +14,8 @@ class RemoteImage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final imgWidth = useState(width ?? 0);
-    final imgHeight = useState(height ?? 0);
+    final imgWidth = useState(width ?? 1);
+    final imgHeight = useState(height ?? 1);
     final loading = useState(true);
     final error = useState(false);
     return LayoutBuilder(builder: (context, constraints) {

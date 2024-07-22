@@ -52,7 +52,7 @@ dependencies:
   patterns_canvas: ^0.4.0
   flutter_widget_from_html_core: ^0.15.1
   fwfh_url_launcher: ^0.9.1
-  webviewimage: ^0.0.4
+  webviewx_plus: ^0.5.0
   super_clipboard: ^0.8.17
   html: ^0.15.4
   validators: ^3.0.0
