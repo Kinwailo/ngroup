@@ -62,7 +62,7 @@ class PostData {
   GroupOptions options;
   var index = -1;
   String userAgent = '';
-  PostHtmlState htmlState = PostHtmlState.text;
+  PostHtmlState htmlState = Settings.htmlMode.val;
 }
 
 enum PostLoadState { waiting, loading, toOutside, loaded, error }
@@ -132,7 +132,7 @@ class PostImagesNotifier extends Notifier<List<PostImage>> {
 
   void removePostImage(int post) {
     var imageList = [...state];
-    imageList.removeWhere((e) => e.post == post);
+    imageList.removeWhere((e) => e.url != null && e.post == post);
     state = imageList;
   }
 
@@ -324,24 +324,11 @@ class PostsLoader {
     }
   }
 
-  void rebuildLinkPreview(PostData data, PostHtmlState state) {
+  void rebuildLinkPreview(PostData data) {
     if (data.body == null) return;
-
     var imagesController = ref.read(postImagesProvider.notifier);
     imagesController.removePostImage(data.index);
-
-    var text = switch (state) {
-      PostHtmlState.text => data.body!.text,
-      PostHtmlState.textify => data.body!.html == null
-          ? null
-          : HtmlSimplifier.textifyHtml(data.body!.html!),
-      PostHtmlState.showOptions => null,
-      PostHtmlState.html => null,
-      PostHtmlState.simplify => null,
-    };
-    if (text == null) return;
-    data.body?.links = _getAllLinks(text, data.index);
-    _getAllLinkPreview(data);
+    _getAllLinks(data);
   }
 
   void select(PostData? data) {
@@ -445,7 +432,7 @@ class PostsLoader {
         progress.value++;
         ref.read(postImagesProvider.notifier).addAttachments(post.body!.images);
         ref.invalidate(postChangeProvider(post.post.messageId));
-        if (!post.state.inside) _getAllLinkPreview(post);
+        if (!post.state.inside) _getAllLinks(post);
       }
     }
 
@@ -468,7 +455,7 @@ class PostsLoader {
     var posts = [..._posts];
     for (var data in posts) {
       await _loadBody(data, cancel);
-      if (!data.state.inside) _getAllLinkPreview(data);
+      if (!data.state.inside) _getAllLinks(data);
       if (cancel.value) return;
 
       for (var child in data.state.reply) {
@@ -566,21 +553,34 @@ class PostsLoader {
     data.body = _getContent(data, text);
   }
 
-  List<PostLinkPreview> _getAllLinks(String text, int post) {
-    var links = linkify(text, options: const LinkifyOptions(humanize: false))
-        .whereType<UrlElement>()
-        .map((e) => e.url)
-        .where((e) => const ['http', 'https'].contains(Uri.parse(e).scheme))
-        .toSet()
-        .map((e) => _loadedLinkPreview[e] ??= PostLinkPreview()
-          ..enabled = !kIsWeb
-          ..url = e)
-        .toList();
+  void _getAllLinks(PostData data) {
+    var text = switch (data.htmlState) {
+      PostHtmlState.text => data.body?.text,
+      PostHtmlState.textify => data.body?.html == null
+          ? null
+          : HtmlSimplifier.textifyHtml(data.body!.html!),
+      PostHtmlState.showOptions => null,
+      PostHtmlState.html => null,
+      PostHtmlState.simplify => null,
+    };
+
+    var links =
+        linkify(text ?? '', options: const LinkifyOptions(humanize: false))
+            .whereType<UrlElement>()
+            .map((e) => e.url)
+            .where((e) => const ['http', 'https'].contains(Uri.parse(e).scheme))
+            .toSet()
+            .map((e) => _loadedLinkPreview[e] ??= PostLinkPreview()
+              ..enabled = !kIsWeb
+              ..url = e)
+            .toList();
     links.where((e) => e.ready && e.image != null).forEachIndexed(
-          (i, e) =>
-              ref.read(postImagesProvider.notifier).addRemoteImage(e, post, i),
+          (i, e) => ref
+              .read(postImagesProvider.notifier)
+              .addRemoteImage(e, data.index, i),
         );
-    return links;
+    data.body?.links = links;
+    _getAllLinkPreview(data);
   }
 
   Future<void> _getLinkPreview(
@@ -674,6 +674,9 @@ class PostsLoader {
         RegExp(r'(?<!<br>\s*)<br>\s+<br>(?!\s*<br>)', caseSensitive: false),
         '<p><br></p>');
 
+    data.htmlState = html == null || data.htmlState == PostHtmlState.showOptions
+        ? PostHtmlState.text
+        : data.htmlState;
     data.userAgent = mime.decodeHeaderValue('User-Agent') ??
         mime.decodeHeaderValue('X-Newsreader') ??
         '';
@@ -750,12 +753,9 @@ class PostsLoader {
     }
     if (text == '' && images.isEmpty) text = data.post.subject;
 
-    var links = _getAllLinks(text, data.index);
-
     return PostBody()
       ..text = text
       ..html = html
-      ..links = links
       ..images = images
       ..files = files;
   }

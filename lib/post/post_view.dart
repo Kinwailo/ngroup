@@ -505,12 +505,13 @@ class PostBody extends HookConsumerWidget {
     onTap(PostHtmlState v) => TapGestureRecognizer()
       ..onTap = () {
         data.htmlState = htmlState.value = v;
-        loader.rebuildLinkPreview(data, v);
+        loader.rebuildLinkPreview(data);
       };
 
     var quoteBody = [
       if (quote != null) PostQuote(quote),
-      if (body?.html != null)
+      if (body?.html != null &&
+          Settings.htmlMode.val == PostHtmlState.showOptions)
         Text.rich(
           TextSpan(
             text: 'Switch to [ ',
@@ -557,7 +558,7 @@ class PostBody extends HookConsumerWidget {
           ),
           textScaler: TextScaler.linear(Settings.contentScale.val / 100),
         ),
-      if (showHtml)
+      if (body?.html != null && showHtml)
         MediaQuery(
           data: MediaQuery.of(context).copyWith(
               textScaler: TextScaler.linear(Settings.contentScale.val / 100)),
@@ -570,7 +571,7 @@ class PostBody extends HookConsumerWidget {
             factoryBuilder: () => NetworkImageFactory(data.index, loader),
           ),
         )
-      else if (body != null && body.text.isNotEmpty)
+      else if (body != null && _getBodyText(data).isNotEmpty)
         PostBodyText(data, false),
     ];
 
@@ -735,6 +736,12 @@ class PostShortReply extends ConsumerWidget {
   }
 }
 
+String _getBodyText(PostData data) {
+  return data.body?.html != null && data.htmlState == PostHtmlState.textify
+      ? HtmlSimplifier.textifyHtml(data.body?.html ?? '')
+      : data.body?.text ?? '';
+}
+
 class CustomScrollBehavior extends MaterialScrollBehavior {
   const CustomScrollBehavior();
   @override
@@ -757,9 +764,7 @@ class PostBodyText extends HookConsumerWidget {
     final more = useState(false);
     final clearSelection = useState(0);
 
-    var text = data.htmlState == PostHtmlState.textify
-        ? HtmlSimplifier.textifyHtml(data.body?.html ?? '')
-        : data.body?.text ?? '';
+    var text = _getBodyText(data);
     if (short) text = text.noLinebreak;
     text += ' ';
     var hide = Settings.hideText.val;
@@ -847,7 +852,7 @@ class PostBodyText extends HookConsumerWidget {
                               verticalAlignment:
                                   TableCellVerticalAlignment.fill,
                               child: GalleryCardItem.url(
-                                  e.url, data.index, 'remote-image')),
+                                  e.url, data.index, 'link-image')),
                         InkWell(
                           onTap: () => launchUrlString(link.url),
                           child: SizedBox(
