@@ -614,18 +614,16 @@ class PostsLoader {
         var doc = MetadataFetch.responseToDocument(resp);
         var meta = MetadataParser.parse(doc);
 
-        if ((meta.title ?? '').isEmpty &&
-            (meta.description ?? '').isEmpty &&
-            (meta.image ?? '').isEmpty) {
+        link.title = (meta.title ?? '').trim();
+        link.description = (meta.description ?? '').trim();
+        var image = meta.image ?? '';
+
+        if (link.title.isEmpty && link.description.isEmpty && image.isEmpty) {
           link.enabled = false;
         } else {
-          link
-            ..title = meta.title ?? ''
-            ..description = meta.description ?? '';
-          if ((meta.image ?? '').isNotEmpty) {
-            resp = await http.get(Uri.parse(meta.image!));
-            link.image =
-                PostImageProvider(resp.bodyBytes, meta.image!.urlFilename);
+          if (image.isNotEmpty) {
+            resp = await http.get(Uri.parse(image));
+            link.image = PostImageProvider(resp.bodyBytes, image.urlFilename);
             imagesController.addRemoteImage(link, post, index);
           }
           if (link.description.isEmpty || link.description == link.title) {
