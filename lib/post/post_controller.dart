@@ -604,7 +604,9 @@ class PostsLoader {
                 .contains(filename.split('.').last.toLowerCase());
       }
 
-      if (link.isImage) {
+      if (resp.statusCode != 200) {
+        link.enabled = false;
+      } else if (link.isImage) {
         link.enabled = false;
         link.image = PostImageProvider(resp.bodyBytes, link.url.urlFilename);
         imagesController.addRemoteImage(link, post, index);
