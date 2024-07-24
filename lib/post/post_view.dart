@@ -779,6 +779,7 @@ class PostBodyText extends HookConsumerWidget {
           linkify(text, options: const LinkifyOptions(humanize: false));
       var spans = linkifies.expand((e) {
         if (e is! LinkableElement) return [TextSpan(text: e.text)];
+        if (e is EmailElement) return [TextSpan(text: e.text)];
 
         var link = loader.getLinkPreview(e.url);
         var embed = link.isImage
