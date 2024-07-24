@@ -190,6 +190,13 @@ class Settings {
     prompt: 'Enter the sender',
   );
 
+  static var jumpTop = PrefsValue(
+    'jumpTop',
+    true,
+    _storage,
+    description: 'Jump to top after refresh',
+  );
+
   static var sortMode = PrefsEnum(
     'sortMode',
     SortMode.hierarchy,

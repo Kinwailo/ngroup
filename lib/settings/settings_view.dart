@@ -67,6 +67,7 @@ class SettingsView extends ConsumerWidget {
               PrefsEnumTile(Settings.showQuote),
               PrefsBoolTile(Settings.shortReply),
               PrefsIntTile(Settings.shortReplySize, min: 10),
+              PrefsBoolTile(Settings.jumpTop),
             ]),
             PrefsGroupTile(children: [
               PrefsEnumTile(Settings.htmlMode),
