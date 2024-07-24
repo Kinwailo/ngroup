@@ -432,7 +432,6 @@ class PostsLoader {
         progress.value++;
         ref.read(postImagesProvider.notifier).addAttachments(post.body!.images);
         ref.invalidate(postChangeProvider(post.post.messageId));
-        if (!post.state.inside) _getAllLinks(post);
       }
     }
 
@@ -455,7 +454,6 @@ class PostsLoader {
     var posts = [..._posts];
     for (var data in posts) {
       await _loadBody(data, cancel);
-      if (!data.state.inside) _getAllLinks(data);
       if (cancel.value) return;
 
       for (var child in data.state.reply) {
@@ -486,12 +484,17 @@ class PostsLoader {
   void _checkInside(PostData data) {
     if (data.body == null) return;
     if (data.parent == null) return;
-    if (data.children.isNotEmpty) return;
-    if (!Settings.shortReply.val) return;
-    data.state.inside = data.body!.images.isEmpty &&
-        data.body!.files.isEmpty &&
-        data.body!.html == null &&
-        (data.body!.text.length <= Settings.shortReplySize.val);
+    var inside = data.state.inside;
+    data.state.inside &= data.children.isEmpty;
+    data.state.inside &= Settings.shortReply.val;
+    data.state.inside &= data.body!.images.isEmpty;
+    data.state.inside &= data.body!.files.isEmpty;
+    data.state.inside &= data.body!.html == null;
+    data.state.inside &= data.body!.text.length <= Settings.shortReplySize.val;
+    data.state.inside &=
+        data.body!.links.none((e) => e.ready && (e.enabled || e.isImage));
+    if (inside != data.state.inside) invalidatePost(data);
+    if (inside) invalidatePost(data.parent);
   }
 
   Future<void> _loadBody(PostData data, ValueNotifier<bool> cancel) async {
@@ -532,7 +535,7 @@ class PostsLoader {
     try {
       var nntp = await NNTPService.fromGroup(data.post.groupId);
       var body = await nntp?.downloadBody(data.post);
-      data.body = _getContent(data, body ?? '');
+      _getContent(data, body ?? '');
     } catch (e) {
       data.state.error = true;
       data.body = PostBody()..text = e.toString();
@@ -550,7 +553,7 @@ class PostsLoader {
     } else {
       text = latin1.decode(gzip.decode(u));
     }
-    data.body = _getContent(data, text);
+    _getContent(data, text);
   }
 
   void _getAllLinks(PostData data) {
@@ -650,11 +653,12 @@ class PostsLoader {
       }
       if (!link.enabled || link.loading || link.ready) continue;
       await _getLinkPreview(link, data.index, i);
-      ref.invalidate(postChangeProvider(data.post.messageId));
+      _checkInside(data);
+      invalidatePost(data);
     }
   }
 
-  PostBody _getContent(PostData data, String text) {
+  void _getContent(PostData data, String text) {
     var mime = MimeMessage.parseFromText(text);
     var charset = data.options.charset.val;
 
@@ -751,11 +755,12 @@ class PostsLoader {
     }
     if (text == '' && images.isEmpty) text = data.post.subject;
 
-    return PostBody()
+    data.body = PostBody()
       ..text = text
       ..html = html
       ..images = images
       ..files = files;
+    _getAllLinks(data);
   }
 
   (Uint8List?, String) _getUuencodeData(String text) {
