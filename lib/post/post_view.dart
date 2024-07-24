@@ -464,15 +464,18 @@ class NetworkImageFactory extends WidgetFactory with UrlLauncherFactory {
       return super.buildImageWidget(tree, src);
     }
     if (!kIsWeb) {
-      Future.delayed(
-          Duration.zero, () => loader.addLinkPreview(url, post, urls.length));
+      Future(() => loader.addLinkPreview(url, post, urls.length));
       urls.add(url);
     }
-    return RemoteImage(
-      url,
-      post,
-      width: src.width,
-      height: src.height,
+    return ConstrainedBox(
+      constraints:
+          BoxConstraints(maxWidth: Settings.linkedImageMaxWidth.val.toDouble()),
+      child: RemoteImage(
+        url,
+        post,
+        width: src.width,
+        height: src.height,
+      ),
     );
   }
 }
@@ -827,8 +830,12 @@ class PostBodyText extends HookConsumerWidget {
         } else if (link.isImage) {
           return [
             WidgetSpan(
-              child: GalleryCardItem.url(link.url, data.index, 'remote-image',
-                  border: true),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxWidth: Settings.linkedImageMaxWidth.val.toDouble()),
+                child: GalleryCardItem.url(link.url, data.index, 'remote-image',
+                    border: true),
+              ),
             )
           ];
         } else if (link.enabled) {

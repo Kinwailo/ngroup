@@ -74,7 +74,8 @@ class SettingsView extends ConsumerWidget {
               if (!kIsWeb) PrefsBoolTile(Settings.embedLinkPreview),
               if (!kIsWeb) PrefsBoolTile(Settings.showLinkedImage),
               if (!kIsWeb) PrefsBoolTile(Settings.embedLinkedImage),
-              if (!kIsWeb) PrefsIntTile(Settings.linkedImageMaxWidth),
+              if (!kIsWeb)
+                PrefsIntTile(Settings.linkedImageMaxWidth, min: 50, step: 50),
               PrefsBoolTile(Settings.smallPreview),
             ]),
             PrefsGroupTile(children: [
