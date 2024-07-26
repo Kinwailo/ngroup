@@ -137,32 +137,34 @@ class WriteController {
     return AdaptiveTextSelectionToolbar.editable(
       anchors: state.contextMenuAnchors,
       clipboardStatus: state.clipboardStatus.value,
-      onCopy: () => state.copySelection(cause),
-      onCut: () => state.cutSelection(cause),
-      onPaste: () async {
-        var reader = await SystemClipboard.instance?.read();
-        if (reader == null) {
-          state.pasteText(cause);
-        } else {
-          var text = await reader.readValue(Formats.plainText);
-          if (text != null) {
-            var html = await reader.readValue(Formats.htmlText);
-            if (html == null) {
-              state.pasteText(cause);
-            } else {
-              textData.value = text;
-              htmlData.value = html;
+      onCopy: state.copyEnabled ? () => state.copySelection(cause) : null,
+      onCut: state.cutEnabled ? () => state.cutSelection(cause) : null,
+      onPaste: state.pasteEnabled
+          ? () async {
+              if (!await handlePaste(cause)) state.pasteText(cause);
+              state.hideToolbar();
             }
-          }
-          state.hideToolbar();
-        }
-      },
-      onSelectAll: () => state.selectAll(cause),
+          : null,
+      onSelectAll: state.selectAllEnabled ? () => state.selectAll(cause) : null,
       onLookUp: null,
       onSearchWeb: null,
       onShare: null,
       onLiveTextInput: null,
     );
+  }
+
+  Future<bool> handlePaste(SelectionChangedCause cause) async {
+    var reader = await SystemClipboard.instance?.read();
+    if (reader == null) return false;
+    var text = await reader.readValue(Formats.plainText);
+    if (text != null) {
+      var html = await reader.readValue(Formats.htmlText);
+      if (html == null) return false;
+      textData.value = text;
+      htmlData.value = html;
+      return true;
+    }
+    return false;
   }
 
   void clearHtmlData() {

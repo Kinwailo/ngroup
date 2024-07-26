@@ -125,6 +125,26 @@ class WriteIdentity extends HookConsumerWidget {
   }
 }
 
+class CustomPasteAction extends Action<PasteTextIntent> {
+  CustomPasteAction(this.handlePaste);
+
+  final Future<bool> Function(SelectionChangedCause cause) handlePaste;
+
+  @override
+  Future<Object?> invoke(PasteTextIntent intent) async {
+    var action = callingAction;
+    if (!await handlePaste(intent.cause)) action?.invoke(intent);
+    return null;
+  }
+
+  @override
+  bool get isActionEnabled => callingAction?.isActionEnabled ?? false;
+
+  @override
+  bool consumesKey(PasteTextIntent intent) =>
+      callingAction?.consumesKey(intent) ?? false;
+}
+
 class WriteContent extends HookConsumerWidget {
   const WriteContent({super.key});
 
@@ -139,19 +159,24 @@ class WriteContent extends HookConsumerWidget {
         padding: const EdgeInsets.all(8),
         child: Stack(
           children: [
-            TextField(
-              focusNode: controller.bodyFocusNode,
-              maxLines: null,
-              decoration: InputDecoration(
-                labelText: 'Content',
-                errorText: controller.body.text.isNotEmpty ||
-                        controller.files.value.isNotEmpty ||
-                        controller.htmlData.value.isNotEmpty
-                    ? null
-                    : 'Content or attachment is empty!',
+            FocusableActionDetector(
+              actions: {
+                PasteTextIntent: CustomPasteAction(controller.handlePaste)
+              },
+              child: TextField(
+                focusNode: controller.bodyFocusNode,
+                maxLines: null,
+                decoration: InputDecoration(
+                  labelText: 'Content',
+                  errorText: controller.body.text.isNotEmpty ||
+                          controller.files.value.isNotEmpty ||
+                          controller.htmlData.value.isNotEmpty
+                      ? null
+                      : 'Content or attachment is empty!',
+                ),
+                controller: controller.body,
+                contextMenuBuilder: controller.contextMenuBuilder,
               ),
-              controller: controller.body,
-              contextMenuBuilder: controller.contextMenuBuilder,
             ),
             Align(
               alignment: AlignmentDirectional.topEnd,
