@@ -19,6 +19,7 @@ extension StringUtils on String {
   String get stripCustomPattern => _stripCustomPattern(this);
 
   bool get containsUuencode => _containsUuencode(this);
+  bool get isImageFile => _isImageFile(this);
 
   String decodeText(String charset) {
     try {
@@ -80,6 +81,12 @@ extension StringUtils on String {
     } catch (e) {
       return text;
     }
+  }
+
+  bool _isImageFile(String filename) {
+    return filename.contains('.') &&
+        ['webp', 'png', 'jpg', 'jpeg', 'jfif', 'gif', 'bmp']
+            .contains(filename.split('.').last.toLowerCase());
   }
 
   String _noLinebreak(String text) {

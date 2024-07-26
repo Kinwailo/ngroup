@@ -6,10 +6,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:path/path.dart';
 import 'package:universal_io/io.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:image/image.dart' as img;
 
+import '../core/string_utils.dart';
 import '../database/database.dart';
 import '../group/group_controller.dart';
 import '../group/group_options.dart';
@@ -21,12 +23,22 @@ import 'post_controller.dart';
 final writeController = Provider<WriteController>(WriteController.new);
 
 class ImageData {
-  ImageData(this.info, this.bytes);
+  ImageData(this.filename, this.fileData) {
+    decoder = img.findDecoderForNamedImage(filename);
+    info = decoder?.startDecode(fileData);
+    imageData = fileData;
+  }
+  String filename;
+  Uint8List fileData = Uint8List(0);
+
+  img.Decoder? decoder;
   img.DecodeInfo? info;
+  img.Image? image;
+
   int scale = WriteController.scaleList.length - 1;
   bool original = true;
   bool hqResize = false;
-  Uint8List? bytes;
+  Uint8List imageData = Uint8List(0);
 }
 
 class WriteController {
@@ -58,9 +70,8 @@ class WriteController {
   var htmlData = ValueNotifier('');
   var textData = ValueNotifier('');
 
-  var files = ValueNotifier(<PlatformFile>[]);
-  var selectedFile = ValueNotifier<PlatformFile?>(null);
-  var imageData = <PlatformFile, ImageData>{};
+  var images = ValueNotifier(<ImageData>[]);
+  var selectedFile = ValueNotifier<ImageData?>(null);
   var resizing = ValueNotifier(false);
 
   var rawQuote = '';
@@ -71,7 +82,7 @@ class WriteController {
     name.addListener(_updateSendable);
     email.addListener(_updateSendable);
     body.addListener(_updateSendable);
-    files.addListener(_updateSendable);
+    images.addListener(_updateSendable);
     htmlData.addListener(_updateSendable);
 
     ref.listen(selectedGroupProvider, (_, groupId) {
@@ -92,7 +103,7 @@ class WriteController {
         email.text.isNotEmpty &&
         subject.text.isNotEmpty &&
         (body.text.isNotEmpty ||
-            files.value.isNotEmpty ||
+            images.value.isNotEmpty ||
             htmlData.value.isNotEmpty) &&
         !resizing.value;
   }
@@ -139,12 +150,10 @@ class WriteController {
       clipboardStatus: state.clipboardStatus.value,
       onCopy: state.copyEnabled ? () => state.copySelection(cause) : null,
       onCut: state.cutEnabled ? () => state.cutSelection(cause) : null,
-      onPaste: state.pasteEnabled
-          ? () async {
-              if (!await handlePaste(cause)) state.pasteText(cause);
-              state.hideToolbar();
-            }
-          : null,
+      onPaste: () async {
+        if (!await handlePaste(cause)) state.pasteText(cause);
+        state.hideToolbar();
+      },
       onSelectAll: state.selectAllEnabled ? () => state.selectAll(cause) : null,
       onLookUp: null,
       onSearchWeb: null,
@@ -163,6 +172,18 @@ class WriteController {
       textData.value = text;
       htmlData.value = html;
       return true;
+    }
+    var uri = await reader.readValue(Formats.fileUri);
+    var filepath = uri?.toFilePath();
+    if (filepath != null && filepath.isImageFile) {
+      var file = File(filepath);
+      var data = await file.readAsBytes();
+      addFile(basename(file.path), data);
+    } else {
+      reader.getFile(Formats.png, (file) async {
+        var data = await file.readAll();
+        addFile(file.fileName ?? 'image.png', data);
+      });
     }
     return false;
   }
@@ -191,7 +212,7 @@ class WriteController {
 
     references =
         data == null ? [] : [...data.post.references, data.post.messageId];
-    files.value = [];
+    images.value = [];
     selectedFile.value = null;
     htmlData.value = '';
     textData.value = '';
@@ -212,62 +233,59 @@ class WriteController {
     return rawQuote.length - Settings.chopQuote.val;
   }
 
-  void addFile() async {
+  void pickFiles() async {
     var result = await FilePicker.platform
         .pickFiles(allowMultiple: true, type: FileType.image, withData: true);
     if (result != null) {
-      files.value = [...files.value, ...result.files];
-      imageData.addAll({
-        for (var file in result.files)
-          file: ImageData(
-              img.findDecoderForNamedImage(file.name)?.startDecode(file.bytes!),
-              file.bytes)
-      });
-      selectedFile.value = files.value.first;
+      images.value = [
+        ...images.value,
+        ...result.files.map((e) => ImageData(e.name, e.bytes ?? Uint8List(0))),
+      ];
+      selectedFile.value ??= images.value.first;
     }
   }
 
-  void removeFile(PlatformFile? file) {
-    if (file == null) return;
-    imageData.remove(file);
-    files.value = files.value.where((e) => e != file).toList();
-    if (selectedFile.value == file) {
-      selectedFile.value = files.value.firstOrNull;
+  void addFile(String filename, Uint8List data) {
+    images.value = [...images.value, ImageData(filename, data)];
+    selectedFile.value ??= images.value.first;
+  }
+
+  void removeFile(ImageData? image) {
+    if (image == null) return;
+    images.value = images.value.where((e) => e != image).toList();
+    if (selectedFile.value == image) {
+      selectedFile.value = images.value.firstOrNull;
     }
   }
 
   Future<void> setImageScale(
-      PlatformFile file, int scale, bool original, bool hqResize) async {
-    imageData[file]!.scale = scale;
-    imageData[file]!.original = original;
-    imageData[file]!.hqResize = hqResize;
+      ImageData image, int scale, bool original, bool hqResize) async {
+    image.scale = scale;
+    image.original = original;
+    image.hqResize = hqResize;
 
     img.Command? cmd;
 
     if (original) {
-      imageData[file]!.bytes = file.bytes;
+      image.imageData = image.fileData;
     } else {
-      var width = img
-          .findDecoderForNamedImage(file.name)
-          ?.startDecode(file.bytes!)
-          ?.width;
-      if (width == null) return;
-      width = (width * scaleList[scale]).toInt();
+      if (image.decoder == null || image.info == null) return;
 
+      image.image ??= image.decoder!.decodeFrame(0);
       cmd = img.Command()
-        ..decodeNamedImage(file.name, file.bytes!)
+        ..image(image.image!)
         ..copyResize(
-            width: width,
+            width: (image.info!.width * scaleList[scale]).toInt(),
             interpolation:
                 hqResize ? img.Interpolation.cubic : img.Interpolation.linear)
         ..encodeJpg(quality: 85);
     }
-    files.value = [...files.value];
+    images.value = [...images.value];
 
     if (cmd != null) {
       resizing.value = true;
       _updateSendable();
-      imageData[file]!.bytes = await cmd.getBytesThread();
+      image.imageData = await cmd.getBytesThread() ?? Uint8List(0);
       resizing.value = false;
       _updateSendable();
     }
@@ -302,7 +320,7 @@ class WriteController {
       content +=
           '\n\n${data.value?.post.from ?? 'Someone'} wrote: \n${quote.text}';
     }
-    if (files.value.isNotEmpty) content += '\n';
+    if (images.value.isNotEmpty) content += '\n';
     content = latin1.decode(utf8.encode(content));
     html = latin1.decode(utf8.encode(html));
 
@@ -333,11 +351,10 @@ class WriteController {
           ..setContentType(MediaSubtype.multipartAlternative.mediaType);
       }
 
-      for (var e in files.value) {
-        var bytes = imageData[e]?.bytes;
-        if (bytes == null) continue;
-        builder.addBinary(bytes, MediaType.guessFromFileName(e.name),
-            filename: MailCodec.base64.encodeHeader(e.name));
+      for (var e in images.value) {
+        if (e.imageData.isEmpty) continue;
+        builder.addBinary(e.imageData, MediaType.guessFromFileName(e.filename),
+            filename: MailCodec.base64.encodeHeader(e.filename));
       }
       var message = builder.buildMimeMessage();
       var data = message.renderMessage();

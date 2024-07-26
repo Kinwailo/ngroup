@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:collection/collection.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -152,7 +151,7 @@ class WriteContent extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var controller = ref.read(writeController);
     useListenable(controller.body);
-    useListenable(controller.files);
+    useListenable(controller.images);
     useListenable(controller.htmlData);
     return Card(
       child: Padding(
@@ -169,7 +168,7 @@ class WriteContent extends HookConsumerWidget {
                 decoration: InputDecoration(
                   labelText: 'Content',
                   errorText: controller.body.text.isNotEmpty ||
-                          controller.files.value.isNotEmpty ||
+                          controller.images.value.isNotEmpty ||
                           controller.htmlData.value.isNotEmpty
                       ? null
                       : 'Content or attachment is empty!',
@@ -409,14 +408,13 @@ class WriteAttachment extends HookConsumerWidget {
     final original = useState(true);
     final hqResize = useState(false);
 
-    useListenable(controller.files);
+    useListenable(controller.images);
     useListenable(controller.selectedFile);
     useListenable(controller.resizing);
     useValueChanged(selected, (_, void __) {
-      scale.value = controller.imageData[selected]?.scale ??
-          WriteController.scaleList.length - 1;
-      original.value = controller.imageData[selected]?.original ?? true;
-      hqResize.value = controller.imageData[selected]?.hqResize ?? false;
+      scale.value = selected?.scale ?? WriteController.scaleList.length - 1;
+      original.value = selected?.original ?? true;
+      hqResize.value = selected?.hqResize ?? false;
     });
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
@@ -432,12 +430,12 @@ class WriteAttachment extends HookConsumerWidget {
                     child: Wrap(
                       spacing: 4,
                       runSpacing: 4,
-                      children: controller.files.value
+                      children: controller.images.value
                           .map((e) => WriteFile(e))
                           .toList(),
                     ),
                   ),
-                  if (controller.files.value.isNotEmpty) const Divider(),
+                  if (controller.images.value.isNotEmpty) const Divider(),
                   if (selected != null)
                     Wrap(
                       spacing: 4,
@@ -502,7 +500,7 @@ class WriteAttachment extends HookConsumerWidget {
                 child: IconButton(
                   splashRadius: 20,
                   icon: const Icon(Icons.attach_file),
-                  onPressed: controller.addFile,
+                  onPressed: controller.pickFiles,
                 ),
               ),
             ],
@@ -514,21 +512,19 @@ class WriteAttachment extends HookConsumerWidget {
 }
 
 class WriteFile extends HookConsumerWidget {
-  const WriteFile(this.file, {super.key});
+  const WriteFile(this.image, {super.key});
 
-  final PlatformFile file;
+  final ImageData image;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
     var controller = ref.read(writeController);
 
-    var data = controller.imageData[file];
-    var scale = WriteController
-        .scaleList[data?.scale ?? WriteController.scaleList.length - 1];
-    var width = data?.info?.width ?? 0;
-    var height = data?.info?.height ?? 0;
-    var size = data?.bytes?.lengthInBytes ?? 0;
+    var scale = WriteController.scaleList[image.scale];
+    var width = image.info?.width ?? 0;
+    var height = image.info?.height ?? 0;
+    var size = image.imageData.lengthInBytes;
 
     var widthText = (width * scale).toStringAsFixed(0);
     var heightText = (height * scale).toStringAsFixed(0);
@@ -546,7 +542,7 @@ class WriteFile extends HookConsumerWidget {
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(8)),
         border: Border.all(
-            style: controller.selectedFile.value == file
+            style: controller.selectedFile.value == image
                 ? BorderStyle.solid
                 : BorderStyle.none,
             color: colorScheme.primary.withOpacity(0.8),
@@ -559,13 +555,13 @@ class WriteFile extends HookConsumerWidget {
           child: IgnorePointer(
             ignoring: controller.resizing.value,
             child: InkWell(
-              onTap: () => controller.selectedFile.value = file,
+              onTap: () => controller.selectedFile.value = image,
               child: Stack(
                 fit: StackFit.loose,
                 children: [
                   Center(
                     child: Ink.image(
-                      image: MemoryImage(file.bytes!),
+                      image: MemoryImage(image.imageData),
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -579,7 +575,7 @@ class WriteFile extends HookConsumerWidget {
                               color: colorScheme.tertiaryContainer
                                   .withOpacity(0.6)),
                           child: controller.resizing.value &&
-                                  controller.selectedFile.value == file
+                                  controller.selectedFile.value == image
                               ? const Center(
                                   child: Padding(
                                     padding: EdgeInsets.all(4),

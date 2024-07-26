@@ -602,9 +602,7 @@ class PostsLoader {
       link.isImage |= ctype.primaryType == 'image';
       if (ctype.subType == 'octet-stream') {
         var filename = link.url.urlFilename;
-        link.isImage |= filename.contains('.') &&
-            ['webp', 'png', 'jpg', 'jpeg', 'jfif', 'gif', 'bmp']
-                .contains(filename.split('.').last.toLowerCase());
+        link.isImage |= filename.isImageFile;
       }
 
       if (resp.statusCode != 200) {
@@ -690,9 +688,7 @@ class PostsLoader {
       if (p.mediaType.sub != MediaSubtype.applicationOctetStream) return false;
       var filename = p.decodeFileName();
       if (filename == null) return false;
-      return filename.contains('.') &&
-          ['webp', 'png', 'jpg', 'jpeg', 'jfif', 'gif', 'bmp']
-              .contains(filename.split('.').last.toLowerCase());
+      return filename.isImageFile;
     }
 
     try {
@@ -723,9 +719,7 @@ class PostsLoader {
         var (bytes, filename) = _getUuencodeData(text);
         if (bytes == null) break;
         text = text.stripUuencode;
-        if (filename.contains('.') &&
-            ['webp', 'png', 'jpg', 'jpeg', 'jfif', 'gif', 'bmp']
-                .contains(filename.split('.').last.toLowerCase())) {
+        if (filename.isImageFile) {
           images.add(PostImage()
             ..post = data.index
             ..image = PostImageProvider(bytes, filename));
