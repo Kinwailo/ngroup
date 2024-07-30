@@ -596,7 +596,7 @@ class PostsLoader {
     var http = IOClient(client);
     try {
       var uri = Uri.parse(link.url);
-      var resp = await http.get(uri);
+      var resp = await http.get(uri).timeout(const Duration(seconds: 10));
       var type = resp.headers[HttpHeaders.contentTypeHeader];
       var ctype = ContentType.parse(type ?? '');
       link.isImage |= ctype.primaryType == 'image';
