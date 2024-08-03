@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:enough_mail/enough_mail.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -128,8 +130,78 @@ class WriteController {
   }
 
   String _getQuote() {
-    var text = const LineSplitter().convert(data.value?.body?.text ?? '');
-    return text.map((e) => '> $e').join('\n');
+    return _wrapText(data.value?.body?.text ?? '')
+        .map((e) => '> $e')
+        .join('\n');
+  }
+
+  List<String> _wrapText(String text) {
+    return const LineSplitter()
+        .convert(text)
+        .expand((e) => _wrapTextLine(e))
+        .toList();
+  }
+
+  List<String> _wrapTextLine(String text) {
+    var lines = <String>[];
+    var line = '';
+    var len = 0;
+    for (var char in text.characters) {
+      if (len + utf8.encode(char).length > 2000) {
+        var i = line.lastIndexOf(
+            RegExp(r'[\p{Z}\p{P}](?=\P{P})(?=\P{Z})', unicode: true));
+        i = max(
+            i,
+            line.lastIndexOf(RegExp(
+                r'[\p{Script=Hani}\p{Script=Hiragana}\p{Script=Katakana}]',
+                unicode: true)));
+        if (i != -1) {
+          lines.add(line.substring(0, i + 1));
+          line = line.substring(i + 1);
+          len = utf8.encode(line).length;
+        } else {
+          lines.add(line);
+          line = '';
+          len = 0;
+        }
+      }
+      len += utf8.encode(char).length;
+      line += char;
+    }
+    lines.add(line);
+    return lines;
+  }
+
+  List<String> _wrapHtml(String html) {
+    return const LineSplitter()
+        .convert(html)
+        .expand((e) => _wrapHtmlLine(e))
+        .toList();
+  }
+
+  List<String> _wrapHtmlLine(String html) {
+    var lines = <String>[];
+    var line = '';
+    var len = 0;
+    for (var char in html.characters) {
+      if (len + utf8.encode(char).length > 2000) {
+        var i = line.lastIndexOf(RegExp(r'\s((?=\S)[^<])+?>', unicode: true));
+        i = max(i, line.lastIndexOf(RegExp(r'(?<=<)\S+>', unicode: true)));
+        if (i != -1) {
+          lines.add(line.substring(0, i + 1));
+          line = line.substring(i + 1);
+          len = utf8.encode(line).length;
+        } else {
+          lines.add(line);
+          line = '';
+          len = 0;
+        }
+      }
+      len += utf8.encode(char).length;
+      line += char;
+    }
+    lines.add(line);
+    return lines;
   }
 
   Set<FocusNode> getAllFocusNode() {
@@ -199,7 +271,6 @@ class WriteController {
 
   void create(PostData? data) {
     this.data.value = data;
-
     var re = RegExp(r'^(Re: ?)*');
     var text = data?.post.subject ?? '';
     if (text.isNotEmpty) text = 'Re: ${text.replaceAll(re, '')}';
@@ -321,7 +392,9 @@ class WriteController {
           '\n\n${data.value?.post.from ?? 'Someone'} wrote: \n${quote.text}';
     }
     if (images.value.isNotEmpty) content += '\n';
+    content = _wrapText(content).join('\n');
     content = latin1.decode(utf8.encode(content));
+    html = _wrapHtml(html).join('\n');
     html = latin1.decode(utf8.encode(html));
 
     try {
