@@ -217,21 +217,26 @@ class WriteController {
 
   Widget contextMenuBuilder(BuildContext context, EditableTextState state) {
     var cause = SelectionChangedCause.toolbar;
-    return AdaptiveTextSelectionToolbar.editable(
-      anchors: state.contextMenuAnchors,
-      clipboardStatus: state.clipboardStatus.value,
-      onCopy: state.copyEnabled ? () => state.copySelection(cause) : null,
-      onCut: state.cutEnabled ? () => state.cutSelection(cause) : null,
-      onPaste: () async {
-        if (!await handlePaste(cause)) state.pasteText(cause);
-        state.hideToolbar();
-      },
-      onSelectAll: state.selectAllEnabled ? () => state.selectAll(cause) : null,
-      onLookUp: null,
-      onSearchWeb: null,
-      onShare: null,
-      onLiveTextInput: null,
-    );
+    var paste = ContextMenuButtonItem(
+        type: ContextMenuButtonType.paste,
+        onPressed: () async {
+          if (!await handlePaste(cause)) state.pasteText(cause);
+          state.hideToolbar();
+        },
+        label: 'Paste');
+    var buttonItems = state.contextMenuButtonItems.expand((e) {
+      if (e.type != ContextMenuButtonType.paste) return [e];
+      return [
+        paste,
+        ContextMenuButtonItem(
+            type: ContextMenuButtonType.paste,
+            onPressed: () => state.pasteText(cause),
+            label: 'Paste text'),
+      ];
+    }).toList();
+    if (buttonItems.isEmpty) buttonItems.add(paste);
+    return AdaptiveTextSelectionToolbar.buttonItems(
+        buttonItems: buttonItems, anchors: state.contextMenuAnchors);
   }
 
   Future<bool> handlePaste(SelectionChangedCause cause) async {
