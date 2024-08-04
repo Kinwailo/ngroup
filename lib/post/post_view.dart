@@ -898,14 +898,17 @@ class PostBodyText extends HookConsumerWidget {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 4),
                                       child: Text(
-                                        link.description,
+                                        link.description == link.url
+                                            ? ''
+                                            : link.description,
                                         maxLines: 3,
                                         overflow: TextOverflow.ellipsis,
                                         style: textTheme.bodySmall,
                                       ),
                                     ),
                                   )
-                                else if (link.description.isNotEmpty)
+                                else if (link.description.isNotEmpty &&
+                                    link.description != link.url)
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 4),
