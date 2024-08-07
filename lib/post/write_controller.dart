@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:universal_io/io.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:image/image.dart' as img;
@@ -41,6 +42,11 @@ class ImageData {
   bool original = true;
   bool hqResize = false;
   Uint8List imageData = Uint8List(0);
+}
+
+class SharingIntent {
+  String text = '';
+  List<ImageData> images = [];
 }
 
 class WriteController {
@@ -77,6 +83,7 @@ class WriteController {
   var resizing = ValueNotifier(false);
 
   var rawQuote = '';
+  var sharingIntent = ValueNotifier<SharingIntent?>(null);
 
   WriteController(this.ref) {
     identity.addListener(_updateIdentity);
@@ -272,6 +279,26 @@ class WriteController {
       body.text += textData.value;
       textData.value = '';
     }
+  }
+
+  Future<void> setSharingIntent(List<SharedMediaFile> list) async {
+    var text = '';
+    var imgs = <ImageData>[];
+    for (var s in list) {
+      if (s.type == SharedMediaType.text) text += '${s.path}\n';
+      if (s.type == SharedMediaType.image) {
+        var file = File(s.path);
+        var bytes = await file.readAsBytes();
+        imgs.add(ImageData(basename(file.path), bytes));
+        await file.delete();
+      }
+    }
+    if (subject.text.isEmpty) {
+      subject.text = const LineSplitter().convert(text).firstOrNull ?? '';
+    }
+    if (text.isNotEmpty) body.text = text;
+    images.value = [...images.value, ...imgs];
+    selectedFile.value ??= images.value.firstOrNull;
   }
 
   void create(PostData? data) {

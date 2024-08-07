@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:ngroup/post/write_view.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import '../core/adaptive.dart';
 import '../core/theme.dart';
@@ -60,6 +62,26 @@ class HomeView extends HookConsumerWidget {
     });
 
     useListenable(Settings.webappMaxWidth);
+
+    var instance = useMemoized(
+        () => Adaptive.isDesktop ? null : ReceiveSharingIntent.instance);
+    void onSharingIntent(List<SharedMediaFile> list) {
+      if (list.isEmpty) return;
+      ref.read(writeController).setSharingIntent(list);
+      if (Adaptive.useTwoPaneUI) {
+        ref.read(rightNavigator).goto(WriteView.path);
+      } else {
+        ref.read(slidePaneProvider).slideToLeft();
+        ref.read(leftNavigator).goto(WriteView.path);
+      }
+      instance?.reset();
+    }
+
+    useOnStreamChange(instance?.getMediaStream(), onData: onSharingIntent);
+    useEffect(() {
+      instance?.getInitialMedia().then(onSharingIntent);
+      return null;
+    }, const []);
 
     return Scaffold(
       body: HomeShortcuts(

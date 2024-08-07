@@ -25,6 +25,7 @@ class WriteView extends HookConsumerWidget {
 
     useListenable(controller.data);
     useListenable(controller.htmlData);
+    useListenable(controller.sharingIntent);
 
     return SingleChildScrollView(
       controller: ScrollController(),
