@@ -100,7 +100,7 @@ class HtmlSimplifier {
         if (node.localName == 'div' && nodes.isNotEmpty) Text('\n'),
         if (node.localName == 'p') nodes.isEmpty ? Text('\n') : Text('\n\n'),
         if (node.localName == 'a' && nodes.isNotEmpty)
-          Text('${node.attributes['href']} '),
+          Text(' ${node.attributes['href']} '),
       ];
     }
     return [];
