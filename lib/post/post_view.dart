@@ -778,11 +778,15 @@ class PostBodyText extends HookConsumerWidget {
     text += ' ';
     var hide = Settings.hideText.val;
     var blocked = Settings.blockSenders.val.contains(data.parent?.post.from);
+    var linkifies =
+        linkify(text, options: const LinkifyOptions(humanize: false));
+    var extra = linkifies
+        .whereType<LinkableElement>()
+        .where((e) => e is! EmailElement)
+        .length;
 
-    TextSpan linkifyTextSpan(String text) {
+    List<InlineSpan> linkifyTextSpan(String text) {
       var urls = <String>{};
-      var linkifies =
-          linkify(text, options: const LinkifyOptions(humanize: false));
       var spans = linkifies.expand((e) {
         if (e is! LinkableElement) return [TextSpan(text: e.text)];
         if (e is EmailElement) return [TextSpan(text: e.text)];
@@ -944,7 +948,7 @@ class PostBodyText extends HookConsumerWidget {
         }
         return [];
       });
-      return TextSpan(children: spans.cast<InlineSpan>().toList());
+      return spans.cast<InlineSpan>().toList();
     }
 
     var span = TextSpan(children: [
@@ -962,7 +966,7 @@ class PostBodyText extends HookConsumerWidget {
         )),
         TextSpan(text: text, style: TextStyle(color: colorScheme.error)),
       ],
-      if (!data.state.error) linkifyTextSpan(text),
+      if (!data.state.error) ...linkifyTextSpan(text),
       if (data.state.error) ...[
         const TextSpan(text: ' '),
         TextSpan(
@@ -986,7 +990,7 @@ class PostBodyText extends HookConsumerWidget {
               text: TextSpan(text: text),
               textDirection: Directionality.of(context));
           tp.layout(maxWidth: constraints.maxWidth);
-          final length = tp.computeLineMetrics().length;
+          final length = tp.computeLineMetrics().length + extra;
           return GestureDetector(
             onLongPress: !Adaptive.isDesktop
                 ? null
