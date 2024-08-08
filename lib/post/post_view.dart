@@ -850,6 +850,9 @@ class PostBodyText extends HookConsumerWidget {
             )
           ];
         } else if (link.enabled) {
+          var description =
+              link.description == link.url ? '' : link.description;
+          description += link.image == null ? '' : '\n\n\n';
           return [
             WidgetSpan(
               child: Card(
@@ -874,7 +877,7 @@ class PostBodyText extends HookConsumerWidget {
                         InkWell(
                           onTap: () => launchUrlString(link.url),
                           child: SizedBox(
-                            height: link.image == null ? null : 80,
+                            // height: link.image == null ? null : 80,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -896,33 +899,16 @@ class PostBodyText extends HookConsumerWidget {
                                     ),
                                   ),
                                 ),
-                                if (link.image != null)
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 4),
-                                      child: Text(
-                                        link.description == link.url
-                                            ? ''
-                                            : link.description,
-                                        maxLines: 3,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: textTheme.bodySmall,
-                                      ),
-                                    ),
-                                  )
-                                else if (link.description.isNotEmpty &&
-                                    link.description != link.url)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 4),
-                                    child: Text(
-                                      link.description,
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: textTheme.bodySmall,
-                                    ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 4),
+                                  child: Text(
+                                    description,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: textTheme.bodySmall,
                                   ),
+                                ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 4, vertical: 1),
