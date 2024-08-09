@@ -68,13 +68,20 @@ class HomeView extends HookConsumerWidget {
     void onSharingIntent(List<SharedMediaFile> list) {
       if (list.isEmpty) return;
       ref.read(writeController).setSharingIntent(list);
-      if (Adaptive.useTwoPaneUI) {
-        ref.read(rightNavigator).goto(WriteView.path);
-      } else {
-        ref.read(slidePaneProvider).slideToLeft();
-        ref.read(leftNavigator).goto(WriteView.path);
-      }
       instance?.reset();
+
+      var slidePane = ref.read(slidePaneProvider);
+      var leftNav = ref.read(leftNavigator);
+      var rightNav = ref.read(rightNavigator);
+
+      if (Adaptive.useTwoPaneUI) {
+        rightNav.goto(WriteView.path);
+      } else if (slidePane.isLeft.value) {
+        leftNav.goto(WriteView.path);
+      } else if (rightNav.path.value != WriteView.path) {
+        slidePane.slideToLeft();
+        leftNav.goto(WriteView.path);
+      }
     }
 
     useOnStreamChange(instance?.getMediaStream(), onData: onSharingIntent);
