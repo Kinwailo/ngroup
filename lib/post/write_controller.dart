@@ -315,11 +315,6 @@ class WriteController {
 
     references =
         data == null ? [] : [...data.post.references, data.post.messageId];
-    images.value = [];
-    selectedFile.value = null;
-    htmlData.value = '';
-    textData.value = '';
-
     enableSignature.value = true;
     enableQuote.value = true;
   }
@@ -469,7 +464,12 @@ class WriteController {
 
       pd.message.value = 'Post was sent successfully.';
       pd.completed.value = true;
+
       body.text = '';
+      images.value = [];
+      selectedFile.value = null;
+      htmlData.value = '';
+      textData.value = '';
     } catch (e) {
       pd.message.value = e.toString();
       pd.error.value = true;
