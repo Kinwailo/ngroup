@@ -591,19 +591,20 @@ class PostsLoader {
     link.loading = true;
     var imagesController = ref.read(postImagesProvider.notifier);
 
+    bool isImage(String? type) {
+      var ctype = ContentType.parse(type ?? '');
+      if (ctype.primaryType == 'image') return true;
+      return ctype.subType == 'octet-stream' &&
+          link.url.urlFilename.isImageFile;
+    }
+
     var client = HttpClient();
     client.userAgent = 'TelegramBot (like TwitterBot)';
     var http = IOClient(client);
     try {
       var uri = Uri.parse(link.url);
       var resp = await http.get(uri).timeout(const Duration(seconds: 10));
-      var type = resp.headers[HttpHeaders.contentTypeHeader];
-      var ctype = ContentType.parse(type ?? '');
-      link.isImage |= ctype.primaryType == 'image';
-      if (ctype.subType == 'octet-stream') {
-        var filename = link.url.urlFilename;
-        link.isImage |= filename.isImageFile;
-      }
+      link.isImage |= isImage(resp.headers[HttpHeaders.contentTypeHeader]);
 
       if (resp.statusCode != 200) {
         link.enabled = false;
@@ -619,17 +620,21 @@ class PostsLoader {
         link.description = (meta.description ?? '').trim();
         var image = meta.image ?? '';
 
+        if (image.isNotEmpty) {
+          var uri = Uri.parse(image);
+          resp = await http.get(uri).timeout(const Duration(seconds: 10));
+        }
+        if (resp.statusCode != 200 ||
+            !isImage(resp.headers[HttpHeaders.contentTypeHeader])) image = '';
+        if (image.isNotEmpty) {
+          link.image = PostImageProvider(resp.bodyBytes, image.urlFilename);
+          imagesController.addRemoteImage(link, post, index);
+        }
+
         if (link.title.isEmpty && link.description.isEmpty && image.isEmpty) {
           link.enabled = false;
-        } else {
-          if (image.isNotEmpty) {
-            resp = await http.get(Uri.parse(image));
-            link.image = PostImageProvider(resp.bodyBytes, image.urlFilename);
-            imagesController.addRemoteImage(link, post, index);
-          }
-          if (link.description.isEmpty || link.description == link.title) {
-            link.description = meta.url ?? link.url;
-          }
+        } else if (link.description.isEmpty || link.description == link.title) {
+          link.description = meta.url ?? link.url;
         }
       }
     } catch (e) {
