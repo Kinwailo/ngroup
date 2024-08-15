@@ -51,15 +51,20 @@ class NNTPClient extends NNTP {
 
   NNTPClient._(this.host, this.port);
 
-  static Future<NNTPClient?> connect(String host, int port) async {
+  static Future<NNTPClient?> connect(String host, int port, String? user,
+      String? password, bool secure) async {
     var client = NNTPClient._(host, port);
-    await client._connect(host, port);
+    await client._connect(user, password, secure);
     return client.connected ? client : null;
   }
 
-  Future<void> _connect(String host, int port) async {
+  Future<void> _connect(String? user, String? password, bool secure) async {
     _socket =
         await Socket.connect(host, port, timeout: const Duration(seconds: 5));
+    if (secure) {
+      _socket =
+          await SecureSocket.secure(_socket, onBadCertificate: (_) => true);
+    }
     _socket.encoding = latin1;
     _controller = StreamController<Uint8List>();
     _subscription = _socket.listen((e) => _controller.add(e),
@@ -68,11 +73,38 @@ class NNTPClient extends NNTP {
         const Latin1Decoder(allowInvalid: true).bind(_controller.stream)));
     await _getResponse();
     await _getCapabilities();
-    welcome = await _shortCommand('MODE READER');
+    await _setReader(user, password);
     if (capabilities.isNotEmpty) {
       await _getOverviewFmt();
     }
     connected = true;
+  }
+
+  Future<void> _setReader(String? user, String? password) async {
+    var auth = false;
+    if (!capabilities.containsKey('READER')) {
+      try {
+        welcome = await _shortCommand('MODE READER');
+        await _getCapabilities();
+      } on NNTPTemporaryException catch (e) {
+        if (!e.message.startsWith('480')) rethrow;
+        if (user == null) rethrow;
+        auth = true;
+      }
+    }
+    if (!(auth || user != null)) return;
+
+    var resp = await _shortCommand('authinfo user $user');
+    if (resp.startsWith('381')) {
+      resp = await _shortCommand('authinfo pass $password');
+    }
+    if (!resp.startsWith('281')) throw NNTPPermanentException(resp);
+    await _getCapabilities();
+
+    if (auth || !capabilities.containsKey('READER')) {
+      welcome = await _shortCommand('MODE READER');
+      await _getCapabilities();
+    }
   }
 
   @override
@@ -210,11 +242,11 @@ class NNTPClient extends NNTP {
 
   @override
   Future<({int count, int first, int last})> group(String name) async {
-    var response = await _shortCommand('GROUP $name');
-    if (!response.startsWith('211')) {
-      throw NNTPReplyException(response);
+    var resp = await _shortCommand('GROUP $name');
+    if (!resp.startsWith('211')) {
+      throw NNTPReplyException(resp);
     }
-    var data = response.split(' ');
+    var data = resp.split(' ');
     var info = [0, 0, 0];
 
     var n = data.length;

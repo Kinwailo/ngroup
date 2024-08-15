@@ -13,6 +13,7 @@ import 'nntp.dart';
 
 class NNTPService {
   static const int defaultPort = 119;
+  static const int securePort = 563;
 
   static final Map<String, NNTPService> _pool = {};
   static final Lock _lock = Lock();
@@ -24,13 +25,17 @@ class NNTPService {
   int _serverId;
   final String _host;
   final int _port;
+  final String? _uses;
+  final String? _password;
+  final bool _secure;
 
-  NNTPService._(this._client, this._serverId, this._host, this._port);
+  NNTPService._(this._client, this._serverId, this._host, this._port,
+      this._uses, this._password, this._secure);
 
   static Future<NNTPService?> fromGroup(int id) async {
     var group = await AppDatabase.get.getGroup(id);
     var server = await AppDatabase.get.getServer(group!.serverId);
-    return await connectAddress(server!.address, server.port);
+    return await connect(server!);
   }
 
   static void _resetAllConnection() {
@@ -40,19 +45,24 @@ class NNTPService {
     _pool.clear();
   }
 
-  static Future<NNTPService?> connectAddress(String host, int port) async {
+  static Future<NNTPService?> connect(Server server) async {
     if (!_addListener) {
       Settings.useHTTPBridge.addListener(_resetAllConnection);
       _addListener = true;
     }
     return await _lock.synchronized(() async {
-      final key = '$host:$port';
+      if (server.port < 0) {
+        server.port = server.secure ? securePort : defaultPort;
+      }
+      var key = '${server.address}:${server.port}';
       var nntp = _pool[key];
       if (nntp == null) {
-        var client = await NNTP.connect(host, port);
+        var client = await NNTP.connect(server.address, server.port,
+            server.user, server.password, server.secure);
         if (client != null && client.connected) {
-          var id = await _detectServerId(host, port);
-          nntp = NNTPService._(client, id, host, port);
+          var id = await _detectServerId(server.address, server.port);
+          nntp = NNTPService._(client, id, server.address, server.port,
+              server.user, server.password, server.secure);
           _pool[key] = nntp;
         }
       }
@@ -72,7 +82,7 @@ class NNTPService {
 
   Future<bool> _checkConnection() async {
     if (!_client.error) return true;
-    var client = await NNTP.connect(_host, _port);
+    var client = await NNTP.connect(_host, _port, _uses, _password, _secure);
     if (client == null || !client.connected) return false;
     _client = client;
     return true;
@@ -100,6 +110,12 @@ class NNTPService {
     return await _nntpLock.synchronized(() async {
       if (_serverId == -1) {
         _serverId = await AppDatabase.get.addServer(_host, _port);
+        var server = await AppDatabase.get.getServer(_serverId);
+        server!
+          ..user = _uses
+          ..password = _password
+          ..secure = _secure;
+        await AppDatabase.get.updateServer(server);
       }
       list = list.map((e) => e..serverId = _serverId).toList();
       return await AppDatabase.get.addGroups(list);

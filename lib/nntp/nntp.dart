@@ -79,10 +79,11 @@ abstract class NNTP {
 
   Future<String> post(String text);
 
-  static Future<NNTP?> connect(String host, int port) async {
+  static Future<NNTP?> connect(String host, int port, String? user,
+      String? password, bool secure) async {
     NNTP? client = (kIsWeb || Settings.useHTTPBridge.val)
         ? HTTPBridge(host, port)
-        : await NNTPClient.connect(host, port);
+        : await NNTPClient.connect(host, port, user, password, secure);
     return client;
   }
 }

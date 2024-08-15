@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:ngroup/nntp/nntp_service.dart';
 
 import '../core/adaptive.dart';
+import '../database/models.dart';
 import '../home/home_view.dart';
-import '../nntp/nntp_service.dart';
 import 'add_controller.dart';
 
 class AddPage extends StatelessWidget {
@@ -109,32 +111,65 @@ class AddStep1 extends HookConsumerWidget {
     var selectedServer = ref.watch(selectedServerProvider);
     var selectionController = ref.read(selectionProvider.notifier);
 
-    var address = useTextEditingController(text: selectionController.address);
-    address.addListener(() => selectionController.address = address.text);
+    var address = useTextEditingController();
+    var port = useTextEditingController();
+    var secure = useState(false);
+    var user = useTextEditingController();
+    var password = useTextEditingController();
 
-    var port =
-        useTextEditingController(text: selectionController.port.toString());
-    port.addListener(() => selectionController.port =
-        int.tryParse(port.text) ?? NNTPService.defaultPort);
-
-    var charset = useTextEditingController(text: selectionController.charset);
+    var charset = useTextEditingController();
     charset.addListener(() => selectionController.charset = charset.text);
 
-    useValueChanged(selectedServer, (_, void __) {
+    void setServerInfo() {
+      var server = selectionController.server;
+      server.address = address.text;
+      server.port = int.tryParse(port.text) ?? -1;
+      server.user = user.text.isEmpty ? null : user.text;
+      server.password = password.text.isEmpty ? null : password.text;
+    }
+
+    void getServerInfo() {
       if (selectedServer == -1) {
         address.text = '';
-        port.text = NNTPService.defaultPort.toString();
+        port.text = '';
+        user.text = '';
+        password.text = '';
+        secure.value = false;
       } else {
         var server =
             servers.requireValue.where((e) => e.id == selectedServer).first;
         address.text = server.address;
-        port.text = server.port.toString();
+        port.text = server.port < 0 ? '' : '${server.port}';
+        user.text = server.user ?? '';
+        password.text = server.password ?? '';
+        secure.value = server.secure;
       }
-    });
+    }
+
+    String getServerTitle(Server server) {
+      var port = server.port >= 0
+          ? server.port
+          : server.secure
+              ? NNTPService.securePort
+              : NNTPService.defaultPort;
+      return '${server.address}:$port';
+    }
+
+    address.addListener(setServerInfo);
+    port.addListener(setServerInfo);
+    user.addListener(setServerInfo);
+    password.addListener(setServerInfo);
+
+    useEffect(() {
+      getServerInfo();
+      return null;
+    }, []);
+    useValueChanged(selectedServer, (_, __) => getServerInfo());
+    useListenable(user);
 
     return SingleChildScrollView(
       child: Column(
-        children: <Widget>[
+        children: [
           servers.when(
             loading: () => const Text('Loading server list...'),
             error: (e, st) => Text('Error: ${e.toString()}'),
@@ -145,13 +180,10 @@ class AddStep1 extends HookConsumerWidget {
                 const DropdownMenuItem(
                     value: -1, child: Text("Add new server")),
                 ...data.map((server) => DropdownMenuItem(
-                    value: server.id,
-                    child: Text('${server.address}:${server.port}'))),
+                    value: server.id, child: Text(getServerTitle(server)))),
               ],
-              onChanged: (int? newValue) {
-                ref.read(selectedServerProvider.notifier).state =
-                    newValue ?? -1;
-              },
+              onChanged: (v) =>
+                  ref.read(selectedServerProvider.notifier).state = v ?? -1,
             ),
           ),
           TextField(
@@ -162,10 +194,43 @@ class AddStep1 extends HookConsumerWidget {
           ),
           TextField(
             focusNode: selectionController.portFocusNode,
-            decoration: const InputDecoration(labelText: 'Port'),
+            decoration: InputDecoration(
+                labelText: 'Port',
+                hintText: port.text.isNotEmpty
+                    ? null
+                    : 'Default: ${secure.value ? '563' : '119'}',
+                floatingLabelBehavior: FloatingLabelBehavior.always),
             controller: port,
+            keyboardType: const TextInputType.numberWithOptions(),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             enabled: selectedServer == -1,
           ),
+          CheckboxListTile(
+            title: const Text('Secure Connection'),
+            value: secure.value,
+            onChanged: selectedServer != -1
+                ? null
+                : (v) => selectionController.server.secure = secure.value = v!,
+            visualDensity: VisualDensity.compact,
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          TextField(
+            focusNode: selectionController.userFocusNode,
+            decoration: const InputDecoration(
+                labelText: 'User',
+                hintText: 'Anonymous',
+                floatingLabelBehavior: FloatingLabelBehavior.always),
+            controller: user,
+            enabled: selectedServer == -1,
+          ),
+          if (user.text.isNotEmpty)
+            TextField(
+              focusNode: selectionController.passwordFocusNode,
+              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true,
+              controller: password,
+              enabled: selectedServer == -1,
+            ),
           TextField(
             focusNode: selectionController.charsetFocusNode,
             decoration: const InputDecoration(labelText: 'Charset'),

@@ -129,12 +129,15 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
   NNTPService? _nntp;
   final Map<GroupInfo, bool> _selectionMap = {};
 
-  String address = '';
-  int port = NNTPService.defaultPort;
+  Server server = Server()
+    ..address = ''
+    ..port = -1;
   String charset = '';
 
   var addressFocusNode = FocusNode();
   var portFocusNode = FocusNode();
+  var userFocusNode = FocusNode();
+  var passwordFocusNode = FocusNode();
   var charsetFocusNode = FocusNode();
   var filterFocusNode = FocusNode();
 
@@ -149,7 +152,7 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
   }
 
   Future<Map<GroupInfo, bool>> _connect() async {
-    _nntp = await NNTPService.connectAddress(address, port);
+    _nntp = await NNTPService.connect(server);
 
     _selectionMap.clear();
     var list = await _nntp!.getGroupList();
@@ -168,6 +171,8 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
     return <FocusNode>{
       addressFocusNode,
       portFocusNode,
+      userFocusNode,
+      passwordFocusNode,
       charsetFocusNode,
       filterFocusNode,
     };
