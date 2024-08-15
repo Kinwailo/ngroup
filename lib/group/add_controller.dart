@@ -5,7 +5,6 @@ import 'package:collection/collection.dart';
 import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:ngroup/group/group_options.dart';
 
 import '../core/adaptive.dart';
 import '../database/database.dart';
@@ -15,6 +14,7 @@ import '../nntp/nntp.dart';
 import '../nntp/nntp_service.dart';
 import '../post/thread_view.dart';
 import 'group_controller.dart';
+import 'group_options.dart';
 import 'options_view.dart';
 
 final serversProvider = StreamProvider<List<Server>>((ref) {

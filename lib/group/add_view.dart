@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:ngroup/nntp/nntp_service.dart';
 
 import '../core/adaptive.dart';
 import '../database/models.dart';
 import '../home/home_view.dart';
+import '../nntp/nntp_service.dart';
 import 'add_controller.dart';
 
 class AddPage extends StatelessWidget {
