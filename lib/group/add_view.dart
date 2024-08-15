@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -288,6 +289,8 @@ class AddStep3 extends HookConsumerWidget {
 
     var scrollController = useScrollController();
     var filter = useTextEditingController();
+    selection = Map.fromEntries(
+        selection.entries.where((e) => e.key.name.contains(filter.text)));
     useListenable(filter);
 
     return Stack(
@@ -300,28 +303,25 @@ class AddStep3 extends HookConsumerWidget {
             itemCount: selection.length,
             itemBuilder: (_, index) {
               var key = selection.keys.elementAt(index);
-              return Visibility(
-                visible: key.name.toString().contains(filter.text),
-                child: InkWell(
-                  onTap: () => selectionController.toggle(key),
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Row(
-                      children: [
-                        Text(
-                          '${key.display} (${key.last - key.first + 1})',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const Spacer(),
-                        Checkbox(
-                          value: selection[key],
-                          onChanged: (bool? value) =>
-                              selectionController.toggle(key),
-                        )
-                      ],
-                    ),
+              return InkWell(
+                onTap: () => selectionController.toggle(key),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${key.display} (${key.last - key.first + 1})',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const Spacer(),
+                      Checkbox(
+                        value: selection[key],
+                        onChanged: (bool? value) =>
+                            selectionController.toggle(key),
+                      )
+                    ],
                   ),
                 ),
               );
