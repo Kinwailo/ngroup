@@ -899,16 +899,18 @@ class PostBodyText extends HookConsumerWidget {
                                     ),
                                   ),
                                 ),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 4),
-                                  child: Text(
-                                    description,
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: textTheme.bodySmall,
+                                if (description.isNotEmpty ||
+                                    link.image != null)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4),
+                                    child: Text(
+                                      description,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: textTheme.bodySmall,
+                                    ),
                                   ),
-                                ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 4, vertical: 1),
