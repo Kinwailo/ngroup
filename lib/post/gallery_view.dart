@@ -37,21 +37,31 @@ class GalleryView extends ConsumerWidget {
   }
 }
 
-class GalleryItem extends ConsumerWidget {
-  const GalleryItem(this.index, this.tag, {super.key});
+typedef SizeCallback = void Function(int, int);
+
+class GalleryItem extends HookConsumerWidget {
+  const GalleryItem(this.index, this.tag, {super.key, this.onSize});
 
   final int index;
   final String tag;
+  final SizeCallback? onSize;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    var images = ref.watch(postImagesProvider);
+    var image = ref.watch(postImagesProvider)[index].image;
+    useEffect(() {
+      var stream = image.resolve(ImageConfiguration.empty);
+      var listener = ImageStreamListener(
+          (img, _) => onSize?.call(img.image.width, img.image.height));
+      stream.addListener(listener);
+      return () => stream.removeListener(listener);
+    }, []);
     return InkWell(
       onTap: () => GalleryItemView.show(context, index, tag),
       child: Hero(
         tag: '$tag + $index',
         child: Image(
-          image: images[index].image,
+          image: image,
           fit: BoxFit.cover,
           filterQuality: FilterQuality.medium,
         ),
@@ -62,14 +72,23 @@ class GalleryItem extends ConsumerWidget {
 
 class GalleryCardItem extends ConsumerWidget {
   const GalleryCardItem._(this.tag,
-      {this.index, this.id, this.url, this.post, this.border, super.key});
-  const GalleryCardItem.index(int index, String tag, {Key? key, bool? border})
-      : this._(tag, key: key, index: index, border: border);
-  const GalleryCardItem.id(int id, String tag, {Key? key, bool? border})
-      : this._(tag, key: key, id: id, border: border);
+      {super.key,
+      this.index,
+      this.id,
+      this.url,
+      this.post,
+      this.border,
+      this.onSize});
+  const GalleryCardItem.index(int index, String tag,
+      {Key? key, bool? border, SizeCallback? onSize})
+      : this._(tag, key: key, index: index, border: border, onSize: onSize);
+  const GalleryCardItem.id(int id, String tag,
+      {Key? key, bool? border, SizeCallback? onSize})
+      : this._(tag, key: key, id: id, border: border, onSize: onSize);
   const GalleryCardItem.url(String url, int post, String tag,
-      {Key? key, bool? border})
-      : this._(tag, key: key, url: url, post: post, border: border);
+      {Key? key, bool? border, SizeCallback? onSize})
+      : this._(tag,
+            key: key, url: url, post: post, border: border, onSize: onSize);
 
   final int? index;
   final int? id;
@@ -77,6 +96,7 @@ class GalleryCardItem extends ConsumerWidget {
   final int? post;
   final String tag;
   final bool? border;
+  final SizeCallback? onSize;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -94,9 +114,9 @@ class GalleryCardItem extends ConsumerWidget {
                     side:
                         BorderSide(color: colorScheme.outline.withOpacity(0.4)),
                     borderRadius: BorderRadius.circular(8)),
-                child: GalleryItem(i, tag),
+                child: GalleryItem(i, tag, onSize: onSize),
               )
-            : GalleryItem(i, tag);
+            : GalleryItem(i, tag, onSize: onSize);
   }
 }
 

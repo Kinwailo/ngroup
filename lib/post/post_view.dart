@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -757,6 +759,17 @@ class CustomScrollBehavior extends MaterialScrollBehavior {
   Widget buildScrollbar(context, child, details) => child;
 }
 
+class CustomWidgetSpan extends WidgetSpan {
+  const CustomWidgetSpan({
+    required this.size,
+    required super.child,
+    super.alignment,
+    super.baseline,
+    super.style,
+  });
+  final Size size;
+}
+
 class PostBodyText extends HookConsumerWidget {
   const PostBodyText(this.data, this.short, {super.key});
 
@@ -780,10 +793,11 @@ class PostBodyText extends HookConsumerWidget {
     var blocked = Settings.blockSenders.val.contains(data.parent?.post.from);
     var linkifies =
         linkify(text, options: const LinkifyOptions(humanize: false));
-    var extra = linkifies
-        .whereType<LinkableElement>()
-        .where((e) => e is! EmailElement)
-        .length;
+
+    var sizeMap = useMemoized(() => <String, Size>{});
+    var sizeStream = useStreamController<MapEntry<String, Size>>();
+    var sizeData = useStream(sizeStream.stream).data;
+    if (sizeData != null) sizeMap.addEntries([sizeData]);
 
     List<InlineSpan> linkifyTextSpan(String text) {
       var urls = <String>{};
@@ -799,11 +813,13 @@ class PostBodyText extends HookConsumerWidget {
             !embed ||
             (!link.isImage && link.ready && !link.enabled)) {
           return [
-            const WidgetSpan(
-                child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 2),
-              child: Icon(Icons.link, size: 16),
-            )),
+            const CustomWidgetSpan(
+              size: Size(20, 16),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 2),
+                child: Icon(Icons.link, size: 16),
+              ),
+            ),
             TextSpan(
               text: link.url.decodeUrl,
               style: const TextStyle(
@@ -818,9 +834,10 @@ class PostBodyText extends HookConsumerWidget {
           return [];
         } else if (!link.ready) {
           return [
-            const WidgetSpan(
+            const CustomWidgetSpan(
               alignment: PlaceholderAlignment.baseline,
               baseline: TextBaseline.ideographic,
+              size: Size(16, 12),
               child: Padding(
                 padding: EdgeInsets.only(right: 4),
                 child: SizedBox.square(
@@ -839,13 +856,22 @@ class PostBodyText extends HookConsumerWidget {
             ),
           ];
         } else if (link.isImage) {
+          var maxWidth = Settings.linkedImageMaxWidth.val.toDouble();
           return [
-            WidgetSpan(
+            CustomWidgetSpan(
+              size: sizeMap.containsKey(link.url)
+                  ? sizeMap[link.url]!
+                  : Size.zero,
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                    maxWidth: Settings.linkedImageMaxWidth.val.toDouble()),
-                child: GalleryCardItem.url(link.url, data.index, 'remote-image',
-                    border: true),
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: GalleryCardItem.url(
+                  link.url,
+                  data.index,
+                  'remote-image',
+                  border: true,
+                  onSize: (w, h) => sizeStream.add(MapEntry(link.url,
+                      Size(min(w.toDouble(), maxWidth), h.toDouble()))),
+                ),
               ),
             )
           ];
@@ -854,7 +880,8 @@ class PostBodyText extends HookConsumerWidget {
               link.description == link.url ? '' : link.description;
           description += link.image == null ? '' : '\n\n\n';
           return [
-            WidgetSpan(
+            CustomWidgetSpan(
+              size: const Size.fromHeight(80),
               child: Card(
                 color: colorScheme.surfaceContainerHighest,
                 shape: RoundedRectangleBorder(
@@ -940,9 +967,7 @@ class PostBodyText extends HookConsumerWidget {
     }
 
     var span = TextSpan(children: [
-      if (data.state.inside &&
-          !blocked &&
-          filters.filterPost(data.parent!)) ...[
+      if (short && !blocked && filters.filterPost(data.parent!)) ...[
         WidgetSpan(child: PostState(data)),
         _senderTextSpan(context, data),
       ],
@@ -974,11 +999,29 @@ class PostBodyText extends HookConsumerWidget {
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final tp = TextPainter(
-              text: TextSpan(text: text),
-              textDirection: Directionality.of(context));
-          tp.layout(maxWidth: constraints.maxWidth);
-          final length = tp.computeLineMetrics().length + extra;
+          var length = 1;
+          if (!short && !data.state.error) {
+            var tp = TextPainter(
+                text: span, textDirection: Directionality.of(context));
+            var dims = <PlaceholderDimensions>[];
+            span.visitChildren((s) {
+              if (s is CustomWidgetSpan) {
+                var width = s.size.width == double.infinity
+                    ? constraints.maxWidth
+                    : s.size.width;
+                var size = Size(width, s.size.height);
+                dims.add(PlaceholderDimensions(
+                  size: size,
+                  alignment: s.alignment,
+                  baseline: s.baseline,
+                ));
+              }
+              return true;
+            });
+            tp.setPlaceholderDimensions(dims);
+            tp.layout(maxWidth: constraints.maxWidth);
+            length = tp.computeLineMetrics().length;
+          }
           return GestureDetector(
             onLongPress: !Adaptive.isDesktop
                 ? null
