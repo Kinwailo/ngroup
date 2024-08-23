@@ -1176,15 +1176,19 @@ class PostImages extends ConsumerWidget {
   }
 }
 
-class PostLinkPreviews extends StatelessWidget {
+class PostLinkPreviews extends ConsumerWidget {
   const PostLinkPreviews(this.data, {super.key});
 
   final PostData data;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
-    var links = data.body!.links.where((e) => e.enabled).toList();
+    var loader = ref.read(postsLoader);
+    var links = data.body!.links
+        .where((e) => e.enabled)
+        .map((e) => loader.getLinkPreview(e.url))
+        .toList();
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints.tightFor(width: links.length * 300),

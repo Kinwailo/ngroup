@@ -108,6 +108,7 @@ class PostLinkPreview {
   var description = '';
   var isImage = false;
   PostImageProvider? image;
+  var completer = Completer();
 }
 
 class PostImage {
@@ -310,18 +311,18 @@ class PostsLoader {
     return _loadedLinkPreview[url] ?? PostLinkPreview();
   }
 
-  void addLinkPreview(String url, int post, int index) {
+  void addLinkPreview(String url, int post, int index) async {
     var link = _loadedLinkPreview[url];
     if (link == null) {
       link = PostLinkPreview()
         ..enabled = false
         ..isImage = true
         ..url = url;
-      _getLinkPreview(link, post, index);
-    } else {
-      var imagesController = ref.read(postImagesProvider.notifier);
-      imagesController.addRemoteImage(link, post, index, embed: true);
+      await _getLinkPreview(link);
     }
+    await link.completer.future;
+    var imagesController = ref.read(postImagesProvider.notifier);
+    imagesController.addRemoteImage(link, post, index, embed: true);
   }
 
   void rebuildLinkPreview(PostData data) {
@@ -573,7 +574,7 @@ class PostsLoader {
             .map((e) => e.url)
             .where((e) => const ['http', 'https'].contains(Uri.parse(e).scheme))
             .toSet()
-            .map((e) => _loadedLinkPreview[e] ??= PostLinkPreview()
+            .map((e) => PostLinkPreview()
               ..enabled = !kIsWeb
               ..url = e)
             .toList();
@@ -586,10 +587,11 @@ class PostsLoader {
     _getAllLinkPreview(data);
   }
 
-  Future<void> _getLinkPreview(
-      PostLinkPreview link, int post, int index) async {
+  Future<void> _getLinkPreview(PostLinkPreview link) async {
+    if (!link.enabled || link.ready) return;
+    if (_loadedLinkPreview.containsKey(link.url)) return;
     link.loading = true;
-    var imagesController = ref.read(postImagesProvider.notifier);
+    _loadedLinkPreview[link.url] ??= link;
 
     bool isImage(String? type) {
       var ctype = ContentType.parse(type ?? '');
@@ -611,7 +613,6 @@ class PostsLoader {
       } else if (link.isImage) {
         link.enabled = false;
         link.image = PostImageProvider(resp.bodyBytes, link.url.urlFilename);
-        imagesController.addRemoteImage(link, post, index);
       } else {
         var doc = MetadataFetch.responseToDocument(resp);
         var meta = MetadataParser.parse(doc);
@@ -628,7 +629,6 @@ class PostsLoader {
             !isImage(resp.headers[HttpHeaders.contentTypeHeader])) image = '';
         if (image.isNotEmpty) {
           link.image = PostImageProvider(resp.bodyBytes, image.urlFilename);
-          imagesController.addRemoteImage(link, post, index);
         }
 
         if (link.title.isEmpty && link.description.isEmpty && image.isEmpty) {
@@ -642,20 +642,26 @@ class PostsLoader {
     } finally {
       http.close();
       client.close();
+
+      link.loading = false;
+      link.ready = true;
+      if (!link.completer.isCompleted) link.completer.complete();
     }
-    link.loading = false;
-    link.ready = true;
-    _loadedLinkPreview[link.url] = link;
   }
 
   Future<void> _getAllLinkPreview(PostData data) async {
-    for (var (i, link) in (data.body?.links ?? <PostLinkPreview>[]).indexed) {
-      if (link.ready && link.isImage && link.image != null) {
-        var imagesController = ref.read(postImagesProvider.notifier);
-        imagesController.addRemoteImage(link, data.index, i);
-      }
-      if (!link.enabled || link.loading || link.ready) continue;
-      await _getLinkPreview(link, data.index, i);
+    var list = data.body?.links ?? <PostLinkPreview>[].where((e) => e.enabled);
+
+    for (var link in list) {
+      _getLinkPreview(link);
+    }
+    invalidatePost(data);
+
+    for (var (i, link) in list.indexed) {
+      link = _loadedLinkPreview[link.url] ?? link;
+      await link.completer.future;
+      var imagesController = ref.read(postImagesProvider.notifier);
+      imagesController.addRemoteImage(link, data.index, i);
       _checkInside(data);
       invalidatePost(data);
     }
