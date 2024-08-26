@@ -821,7 +821,7 @@ class PostBodyText extends HookConsumerWidget {
               ),
             ),
             TextSpan(
-              text: link.url.decodeUrl,
+              text: e.url.decodeUrl,
               style: const TextStyle(
                 color: Colors.blueAccent,
                 decoration: TextDecoration.underline,
