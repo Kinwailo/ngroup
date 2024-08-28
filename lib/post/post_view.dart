@@ -827,7 +827,7 @@ class PostBodyText extends HookConsumerWidget {
                 decoration: TextDecoration.underline,
               ),
               recognizer: TapGestureRecognizer()
-                ..onTap = () => launchUrlString(link.url),
+                ..onTap = () => launchUrlString(e.url),
             ),
           ];
         } else if (!urls.add(link.url)) {
