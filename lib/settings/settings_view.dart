@@ -35,6 +35,7 @@ class SettingsView extends ConsumerWidget {
                   PrefsIntTile(Settings.webappMaxWidth, min: 800, step: 50),
                 if (!kIsWeb) PrefsBoolTile(Settings.useHTTPBridge),
                 PrefsIntTile(Settings.contentScale, min: 80, step: 5),
+                PrefsBoolTile(Settings.convertChinese),
               ],
             ),
             PrefsShortcutsTile(children: [

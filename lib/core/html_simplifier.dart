@@ -1,5 +1,6 @@
 import 'package:html/dom.dart';
 import 'package:html/parser.dart' as htmlparser;
+import 'package:ngroup/conv/conv.dart';
 import 'package:ngroup/core/string_utils.dart';
 import 'package:validators/sanitizers.dart';
 import 'package:html_unescape/html_unescape.dart';
@@ -55,7 +56,7 @@ class HtmlSimplifier {
   }
 
   static List<Node> _filterTag(Node node) {
-    if (node is Text) return [node];
+    if (node is Text) return [node..data = node.data.convUseSetting];
     if (node is Element) {
       var style = node.attributes['style'];
       node.attributes.removeWhere((k, _) =>
@@ -84,8 +85,9 @@ class HtmlSimplifier {
 
   static List<Node> _textOnly(Node node) {
     if (node is Text) {
-      if (pre) return [node];
-      return [node..data = node.data.replaceAll(RegExp(r'\s+'), ' ').trim()];
+      var data = node.data.convUseSetting;
+      if (pre) return [node..data = data];
+      return [node..data = data.replaceAll(RegExp(r'\s+'), ' ').trim()];
     }
     if (node is Element) {
       if (node.localName == 'img') return [Text('${node.attributes['src']} ')];

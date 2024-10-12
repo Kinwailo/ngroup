@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:ngroup/conv/conv.dart';
+
 import 'post_controller.dart';
 import '/core/adaptive.dart';
 import '/core/datetime_utils.dart';
@@ -175,17 +177,18 @@ body {
 
   static void _exportPost(PostData post, StringBuffer output) {
     output.write(exportPostBegin
-        .replaceAll(r'$sender$', post.post.from.sender)
+        .replaceAll(r'$sender$', post.post.from.sender.convUseSetting)
         .replaceAll(r'$datetime$', post.post.dateTime.toLocal().string)
         .replaceAll(r'$index$', '${post.index + 1}'));
 
     if (post.state.showQuote) {
       output.write(exportQuote
-          .replaceAll(r'$quote_sender$', post.parent!.post.from.sender)
+          .replaceAll(
+              r'$quote_sender$', post.parent!.post.from.sender.convUseSetting)
           .replaceAll(r'$quote_content$',
-              post.parent!.body!.text.replaceAll('\n', ' ')));
+              post.parent!.body!.text.convUseSetting.replaceAll('\n', ' ')));
     }
-    var content = post.body!.text.replaceAll('\n', '<br/>');
+    var content = post.body!.text.convUseSetting.replaceAll('\n', '<br/>');
     output.write(exportPostMiddle.replaceAll(r'$content$', content));
 
     if (post.body!.images.isNotEmpty) {
@@ -213,9 +216,10 @@ body {
       output.write(exportDivider);
       for (var reply in post.state.reply.where((e) => e.state.inside)) {
         output.write(exportReply
-            .replaceAll(r'$reply_sender$', reply.post.from.sender)
             .replaceAll(
-                r'$reply_content$', reply.body!.text.replaceAll('\n', ' ')));
+                r'$reply_sender$', reply.post.from.sender.convUseSetting)
+            .replaceAll(r'$reply_content$',
+                reply.body!.text.convUseSetting.replaceAll('\n', ' ')));
       }
     }
     output.write(exportPostEnd);
@@ -224,7 +228,7 @@ body {
   static String _export(Iterable<PostData> posts) {
     var output = StringBuffer();
     output.write(exportBegin.replaceAll(
-        r'$title$', posts.first.post.subject.noLinebreak));
+        r'$title$', posts.first.post.subject.noLinebreak.convUseSetting));
 
     _exportPost(posts.first, output);
     for (var p in posts.skip(1)) {
@@ -238,7 +242,7 @@ body {
   static Future<void> save(Iterable<PostData> posts) async {
     if (posts.isEmpty) return;
     var output = _export(posts);
-    var filename = '${posts.first.post.subject}.html';
+    var filename = '${posts.first.post.subject.convUseSetting}.html';
     Adaptive.saveText(output, 'Export to HTML', filename, 'text/html');
   }
 }

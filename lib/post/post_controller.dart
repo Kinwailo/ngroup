@@ -10,6 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/io_client.dart';
 import 'package:linkify/linkify.dart';
 import 'package:metadata_fetch_plus/metadata_fetch_plus.dart';
+import 'package:ngroup/conv/conv.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -259,7 +260,7 @@ class PostsLoader {
       }
 
       ref.read(titleProvider.notifier).state =
-          _posts.firstOrNull?.post.subject.noLinebreak ?? '';
+          _posts.firstOrNull?.post.subject.noLinebreak.convUseSetting ?? '';
     }
     progress.value = 0;
     unread.value = _posts.whereNot((p) => p.post.isRead).length;
@@ -368,7 +369,7 @@ class PostsLoader {
   void share() {
     var output = StringBuffer();
     for (var p in getAllOrSelected()) {
-      var text = p.body?.text ?? '';
+      var text = p.body?.text.convUseSetting ?? '';
       if (p.body?.images.isNotEmpty ?? false) {
         if (text.isNotEmpty) text += ' ';
         var images =
@@ -380,9 +381,10 @@ class PostsLoader {
         var files = p.body?.files.map((e) => e.filename).join(', ') ?? '';
         text += '[file: $files]';
       }
-      output.writeln('${p.post.from.sender}: $text');
+      output.writeln('${p.post.from.sender.convUseSetting}: $text');
     }
-    Share.share(output.toString(), subject: _posts[0].post.subject);
+    Share.share(output.toString(),
+        subject: _posts[0].post.subject.convUseSetting);
   }
 
   Future<void> capture(double pixelRatio) async {

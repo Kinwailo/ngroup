@@ -10,6 +10,7 @@ import '../core/block_painter.dart';
 import '../core/string_utils.dart';
 import '../core/datetime_utils.dart';
 import '../core/theme.dart';
+import '../conv/conv.dart';
 import '../group/group_controller.dart';
 import '../home/filter_controller.dart';
 import '../home/home_controller.dart';
@@ -102,7 +103,7 @@ TextSpan _senderTextSpan(BuildContext context, ThreadData data,
     {double opacity = 1.0}) {
   var theme = Theme.of(context).extension<NGroupTheme>()!;
   return TextSpan(
-    text: '${data.thread.from.sender} ',
+    text: '${data.thread.from.sender.convUseSetting} ',
     style: TextStyle(color: theme.sender?.withOpacity(opacity)),
     recognizer: LongPressGestureRecognizer()
       ..onLongPress = () {
@@ -324,7 +325,7 @@ class ThreadTileContent extends HookConsumerWidget {
               selectedTileColor: colorScheme.primaryContainer.withOpacity(0.5),
               selectedColor: colorScheme.onPrimaryContainer,
               title: Text(
-                thread.subject.noLinebreak,
+                thread.subject.noLinebreak.convUseSetting,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),

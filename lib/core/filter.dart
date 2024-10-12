@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:ngroup/conv/conv.dart';
 
 import '../post/post_controller.dart';
 import '../settings/settings.dart';
@@ -277,13 +278,13 @@ class SenderFilter extends Filter with FilterParam<String>, FilterParamString {
   @override
   bool _matchThread(Thread data) {
     return allPost
-        ? data.senders.any((e) => _matchSender(e))
-        : _matchSender(data.from.sender);
+        ? data.senders.any((e) => _matchSender(e.convUseSetting))
+        : _matchSender(data.from.sender.convUseSetting);
   }
 
   @override
   bool _matchPost(PostData data) {
-    var sender = data.post.from.sender.toLowerCase();
+    var sender = data.post.from.sender.convUseSetting.toLowerCase();
     return switch (mode) {
       FilterModes.equal => sender == param.toLowerCase(),
       FilterModes.contains => sender.contains(param.toLowerCase()),

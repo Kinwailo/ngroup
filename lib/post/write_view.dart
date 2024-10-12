@@ -10,6 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../core/adaptive.dart';
 import '../core/html_simplifier.dart';
+import '../conv/conv.dart';
 import '../settings/settings.dart';
 import '../widgets/remote_image.dart';
 import 'write_controller.dart';
@@ -59,6 +60,8 @@ class WriteIdentity extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var controller = ref.read(writeController);
+    var conv = controller.subject.text.conv != controller.subject.text;
+    if (!Settings.convertChinese.val) conv = false;
     useListenable(controller.identity);
     useListenable(controller.name);
     useListenable(controller.email);
@@ -112,9 +115,28 @@ class WriteIdentity extends HookConsumerWidget {
               focusNode: controller.subjectFocusNode,
               decoration: InputDecoration(
                 labelText: 'Subject',
-                errorText: controller.subject.text.isNotEmpty
+                errorText: conv || controller.subject.text.isNotEmpty
                     ? null
                     : 'Subject is empty!',
+                error: !conv
+                    ? null
+                    : RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                                text: 'Convert to traditional chinese',
+                                style: const TextStyle(
+                                    color: Colors.blueAccent,
+                                    fontWeight: FontWeight.bold),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () => controller.subject.text =
+                                      controller.subject.text.conv),
+                            const TextSpan(text: ' ')
+                          ],
+                        ),
+                        textScaler:
+                            TextScaler.linear(Settings.contentScale.val / 100),
+                      ),
               ),
               controller: controller.subject,
             ),
@@ -151,6 +173,8 @@ class WriteContent extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var controller = ref.read(writeController);
+    var conv = controller.body.text.conv != controller.body.text;
+    if (!Settings.convertChinese.val) conv = false;
     useListenable(controller.body);
     useListenable(controller.images);
     useListenable(controller.htmlData);
@@ -168,11 +192,31 @@ class WriteContent extends HookConsumerWidget {
                 maxLines: null,
                 decoration: InputDecoration(
                   labelText: 'Content',
-                  errorText: controller.body.text.isNotEmpty ||
+                  errorText: conv ||
+                          controller.body.text.isNotEmpty ||
                           controller.images.value.isNotEmpty ||
                           controller.htmlData.value.isNotEmpty
                       ? null
                       : 'Content or attachment is empty!',
+                  error: !conv
+                      ? null
+                      : RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                  text: 'Convert to traditional chinese',
+                                  style: const TextStyle(
+                                      color: Colors.blueAccent,
+                                      fontWeight: FontWeight.bold),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () => controller.body.text =
+                                        controller.body.text.conv),
+                              const TextSpan(text: ' ')
+                            ],
+                          ),
+                          textScaler: TextScaler.linear(
+                              Settings.contentScale.val / 100),
+                        ),
                 ),
                 controller: controller.body,
                 contextMenuBuilder: controller.contextMenuBuilder,

@@ -96,6 +96,13 @@ class Settings {
     description: 'Content text scale (%)',
   );
 
+  static var convertChinese = PrefsValue(
+    'convertChinese',
+    true,
+    _storage,
+    description: 'Convert to traditional chinese',
+  );
+
   static var shortcutRefresh = PrefsShortcut(
     'shortcutRefresh',
     const SingleActivator(LogicalKeyboardKey.keyR,

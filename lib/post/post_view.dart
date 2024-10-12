@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:linkify/linkify.dart';
+import 'package:ngroup/conv/conv.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -188,7 +189,7 @@ class PostNext extends HookConsumerWidget {
     ref.watch(selectedThreadProvider);
     var loader = ref.read(postsLoader);
     var next = ref.read(threadsLoader).getNext();
-    var text = next == null ? 'No more' : next.thread.subject;
+    var text = next == null ? 'No more' : next.thread.subject.convUseSetting;
 
     useListenable(loader.unread);
     useListenable(Settings.nextThreadDirection);
@@ -434,7 +435,7 @@ TextSpan _senderTextSpan(BuildContext context, PostData data,
     {double opacity = 1.0}) {
   var theme = Theme.of(context).extension<NGroupTheme>()!;
   return TextSpan(
-    text: '${data.post.from.sender} ',
+    text: '${data.post.from.sender.convUseSetting} ',
     style: TextStyle(color: theme.sender?.withOpacity(opacity)),
     recognizer: LongPressGestureRecognizer()
       ..onLongPress = () {
@@ -639,7 +640,7 @@ class PostQuote extends StatelessWidget {
     var colorScheme = Theme.of(context).colorScheme;
     var theme = Theme.of(context).extension<NGroupTheme>()!;
     var blocked = Settings.blockSenders.val.contains(data.post.from);
-    var quote = data.body?.text.noLinebreak ?? '';
+    var quote = data.body?.text.noLinebreak.convUseSetting ?? '';
     if (quote.isEmpty) quote = 'No content.';
     if (blocked) quote = 'Blocked';
     return Card(
@@ -750,7 +751,7 @@ class PostShortReply extends ConsumerWidget {
 String _getBodyText(PostData data) {
   return data.body?.html != null && data.htmlState == PostHtmlState.textify
       ? HtmlSimplifier.textifyHtml(data.body?.html ?? '')
-      : data.body?.text ?? '';
+      : data.body?.text.convUseSetting ?? '';
 }
 
 class CustomScrollBehavior extends MaterialScrollBehavior {
@@ -1245,7 +1246,7 @@ class PostLinkPreviews extends ConsumerWidget {
                                       child: Padding(
                                         padding: const EdgeInsets.all(4.0),
                                         child: Text(
-                                          e.title,
+                                          e.title.convUseSetting,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -1259,7 +1260,7 @@ class PostLinkPreviews extends ConsumerWidget {
                                       child: Padding(
                                         padding: const EdgeInsets.all(4.0),
                                         child: Text(
-                                          e.description,
+                                          e.description.convUseSetting,
                                           maxLines: e.image == null ? 10 : 2,
                                           overflow: e.image == null
                                               ? null
