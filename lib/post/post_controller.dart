@@ -7,10 +7,9 @@ import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:http/io_client.dart';
+// import 'package:http/io_client.dart';
 import 'package:linkify/linkify.dart';
 import 'package:metadata_fetch_plus/metadata_fetch_plus.dart';
-import 'package:ngroup/conv/conv.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -19,6 +18,7 @@ import '../core/adaptive.dart';
 import '../core/html_simplifier.dart';
 import '../core/scroll_control.dart';
 import '../core/string_utils.dart';
+import '../conv/conv.dart';
 import '../database/database.dart';
 import '../database/models.dart';
 import '../group/group_controller.dart';
@@ -29,6 +29,8 @@ import '../nntp/nntp_service.dart';
 import '../settings/settings.dart';
 import 'post_export.dart';
 import 'thread_controller.dart';
+import '../core/browser_client.dart'
+    if (dart.library.io) '../core/io_client.dart';
 
 final selectedPostProvider = StateProvider<String>((ref) {
   ref.watch(selectedGroupProvider);
@@ -124,6 +126,14 @@ class PostImage {
 class PostFile {
   Uint8List? data;
   var filename = '';
+}
+
+extension UrlProxy on String {
+  String get proxy {
+    return !kIsWeb
+        ? this
+        : Uri.encodeFull('https://cors.kinwailo.workers.dev/?$this');
+  }
 }
 
 class PostImagesNotifier extends Notifier<List<PostImage>> {
@@ -577,7 +587,7 @@ class PostsLoader {
             .where((e) => const ['http', 'https'].contains(Uri.parse(e).scheme))
             .toSet()
             .map((e) => PostLinkPreview()
-              ..enabled = !kIsWeb
+              ..enabled = true //!kIsWeb
               ..url = e)
             .toList();
     links.where((e) => e.ready && e.image != null).forEachIndexed(
@@ -602,11 +612,12 @@ class PostsLoader {
           link.url.urlFilename.isImageFile;
     }
 
-    var client = HttpClient();
-    client.userAgent = 'TelegramBot (like TwitterBot)';
-    var http = IOClient(client);
+    // var client = HttpClient();
+    // client.userAgent = 'TelegramBot (like TwitterBot)';
+    // var http = IOClient(client);
+    var http = getClient();
     try {
-      var uri = Uri.parse(link.url);
+      var uri = Uri.parse(link.url.proxy);
       var resp = await http.get(uri).timeout(const Duration(seconds: 10));
       link.isImage |= isImage(resp.headers[HttpHeaders.contentTypeHeader]);
 
@@ -624,7 +635,7 @@ class PostsLoader {
         var image = meta.image ?? '';
 
         if (image.isNotEmpty) {
-          var uri = Uri.parse(image);
+          var uri = Uri.parse(image.proxy);
           resp = await http.get(uri).timeout(const Duration(seconds: 10));
         }
         if (resp.statusCode != 200 ||
@@ -643,7 +654,6 @@ class PostsLoader {
       link.enabled = false;
     } finally {
       http.close();
-      client.close();
 
       link.loading = false;
       link.ready = true;

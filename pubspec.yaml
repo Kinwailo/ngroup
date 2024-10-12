@@ -58,7 +58,8 @@ dependencies:
   validators: ^3.0.0
   html_unescape: ^2.0.0
   receive_sharing_intent: ^1.8.0
-
+  web: ^1.1.0
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
