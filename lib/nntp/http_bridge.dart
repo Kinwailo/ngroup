@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:enough_mail/enough_mail.dart';
 import 'package:http/http.dart' as http;
@@ -24,7 +25,7 @@ class HTTPBridge extends NNTP {
 
   Future<http.Response> httpPost(Map<String, Object> cmd) async {
     var url = Uri.parse(bridgeUrl);
-    var headers = {'Content-type': 'application/json'};
+    var headers = {HttpHeaders.contentTypeHeader: 'application/json'};
     var req = {'server': host, 'port': port};
     req.addAll(cmd);
     var resp = await http.post(url, headers: headers, body: json.encode(req));
