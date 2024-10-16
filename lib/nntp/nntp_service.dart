@@ -235,9 +235,9 @@ class NNTPService {
       var data = await _client.article(post.messageId);
       var body = data.join('\r\n');
       if (kIsWeb) {
-        post.source = Uint8List.fromList(latin1.encode(body));
+        post.source = latin1.encode(body);
       } else {
-        post.source = Uint8List.fromList(gzip.encode(latin1.encode(body)));
+        post.source = gzip.encode(latin1.encode(body));
       }
       AppDatabase.get.updatePost(post);
       return body;

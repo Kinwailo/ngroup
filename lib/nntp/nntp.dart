@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter/foundation.dart';
 
 import '../settings/settings.dart';
@@ -85,5 +86,25 @@ abstract class NNTP {
         ? HTTPBridge(host, port)
         : await NNTPClient.connect(host, port, user, password, secure);
     return client;
+  }
+
+  Future<List<MessageInfo>> parseOverview(Iterable<String> data) async {
+    return data.map((d) {
+      var tokens = d.split('\t');
+      if (tokens.length - 1 < 7) {
+        throw NNTPDataException(
+            'OVER/XOVER response fewer than default fields');
+      }
+      return MessageInfo(
+        int.parse(tokens[0]),
+        tokens[1],
+        tokens[2],
+        DateCodec.decodeDate(tokens[3]) ?? DateTime.now(),
+        tokens[4],
+        tokens[5],
+        int.tryParse(tokens[6]) ?? 0,
+        int.tryParse(tokens[7]) ?? 0,
+      );
+    }).toList();
   }
 }

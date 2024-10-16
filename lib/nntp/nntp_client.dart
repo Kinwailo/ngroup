@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
-import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter/foundation.dart';
 
 import 'nntp.dart';
@@ -31,11 +30,6 @@ class NNTPClient extends NNTP {
     ':bytes',
     ':lines'
   ];
-
-  static const overviewFmtAlternatives = {
-    'bytes': ':bytes',
-    'lines': ':lines',
-  };
 
   final String host;
   final int port;
@@ -74,9 +68,6 @@ class NNTPClient extends NNTP {
     await _getResponse();
     await _getCapabilities();
     await _setReader(user, password);
-    if (capabilities.isNotEmpty) {
-      await _getOverviewFmt();
-    }
     connected = true;
   }
 
@@ -199,38 +190,6 @@ class NNTPClient extends NNTP {
     }
   }
 
-  Future<void> _getOverviewFmt() async {
-    try {
-      var data = await _longCommand('LIST OVERVIEW.FMT');
-      _parseOverviewFmt(data);
-    } on NNTPPermanentException {
-      overviewFmt = [];
-    }
-  }
-
-  void _parseOverviewFmt(List<String> data) {
-    var fmt = <String>[];
-    for (var d in data) {
-      String name;
-      if (d[0] == ':') {
-        name = ':${d.substring(1).split(':')[0]}';
-      } else {
-        name = d.split(':')[0];
-      }
-      name = name.toLowerCase();
-      name = overviewFmtAlternatives[name] ?? name;
-      fmt.add(name);
-    }
-    if (fmt.length < defaultOverviewFmt.length) {
-      throw NNTPDataException('LIST OVERVIEW.FMT response too short');
-    }
-    if (!listEquals(
-        fmt.sublist(0, defaultOverviewFmt.length), defaultOverviewFmt)) {
-      throw NNTPDataException('LIST OVERVIEW.FMT redefines default fields');
-    }
-    overviewFmt = fmt;
-  }
-
   @override
   Future<List<GroupInfo>> list() async {
     var data = await _longCommand('LIST');
@@ -259,33 +218,7 @@ class NNTPClient extends NNTP {
   @override
   Future<List<MessageInfo>> xover(int start, int end) async {
     var data = await _longCommand('XOVER $start-$end');
-    return _parseOverview(data);
-  }
-
-  Future<List<MessageInfo>> _parseOverview(List<String> data) async {
-    var overview = <MessageInfo>[];
-    for (var d in data) {
-      var tokens = d.split('\t');
-      var number = int.parse(tokens[0]);
-      if (tokens.length - 1 < defaultOverviewFmt.length) {
-        throw NNTPDataException(
-            'OVER/XOVER response fewer than default fields');
-      }
-      var fields = Map<String, dynamic>.fromIterables(
-          defaultOverviewFmt, tokens.sublist(1, defaultOverviewFmt.length + 1));
-      var subject = fields[defaultOverviewFmt[0]];
-      var from = fields[defaultOverviewFmt[1]];
-      var date =
-          DateCodec.decodeDate(fields[defaultOverviewFmt[2]]) ?? DateTime.now();
-      var messageId = fields[defaultOverviewFmt[3]];
-      var references = fields[defaultOverviewFmt[4]];
-      var bytes = int.tryParse(fields[defaultOverviewFmt[5]]) ?? 0;
-      var line = int.tryParse(fields[defaultOverviewFmt[6]]) ?? 0;
-      var info = MessageInfo(
-          number, subject, from, date, messageId, references, bytes, line);
-      overview.add(info);
-    }
-    return overview;
+    return parseOverview(data);
   }
 
   @override
