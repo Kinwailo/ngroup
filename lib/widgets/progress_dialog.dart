@@ -22,6 +22,7 @@ class ProgressDialog {
   }
 
   void close() {
+    if (_closed) return;
     _closed = true;
     navigatorState?.pop();
     onClosed?.call();
@@ -44,66 +45,71 @@ class ProgressDialog {
                 Future.delayed(
                     const Duration(milliseconds: 1000), () => close());
               }
-              return AlertDialog(
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        switch ((completed.value, error.value)) {
-                          (true, _) => const Icon(Icons.check_circle,
-                              size: 48, color: Colors.blueAccent),
-                          (_, true) => const Icon(Icons.error,
-                              size: 48, color: Colors.redAccent),
-                          _ => SizedBox(
-                              width: 48,
-                              height: 48,
-                              child: Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: CircularProgressIndicator(
-                                  backgroundColor: Colors.blueGrey,
-                                  valueColor:
-                                      const AlwaysStoppedAnimation<Color?>(
-                                          Colors.blueAccent),
-                                  value: prepare.value
-                                      ? null
-                                      : progress.value / max.value,
+              return GestureDetector(
+                onTap: () {
+                  if (completed.value) close();
+                },
+                child: AlertDialog(
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          switch ((completed.value, error.value)) {
+                            (true, _) => const Icon(Icons.check_circle,
+                                size: 48, color: Colors.blueAccent),
+                            (_, true) => const Icon(Icons.error,
+                                size: 48, color: Colors.redAccent),
+                            _ => SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: CircularProgressIndicator(
+                                    backgroundColor: Colors.blueGrey,
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color?>(
+                                            Colors.blueAccent),
+                                    value: prepare.value
+                                        ? null
+                                        : progress.value / max.value,
+                                  ),
                                 ),
                               ),
-                            ),
-                        },
-                        Flexible(
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              left: 16.0,
-                              top: 8.0,
-                              bottom: 8.0,
-                            ),
-                            child: ListenableBuilder(
-                              listenable: message,
-                              builder: (_, __) {
-                                return Text(
-                                  message.value,
-                                  textAlign: TextAlign.center,
-                                  // maxLines: 1,
-                                  // overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize:
-                                        theme.textTheme.bodyMedium!.fontSize!,
-                                    color: theme.colorScheme.onSurface,
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                );
-                              },
+                          },
+                          Flexible(
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16.0,
+                                top: 8.0,
+                                bottom: 8.0,
+                              ),
+                              child: ListenableBuilder(
+                                listenable: message,
+                                builder: (_, __) {
+                                  return Text(
+                                    message.value,
+                                    textAlign: TextAlign.center,
+                                    // maxLines: 1,
+                                    // overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize:
+                                          theme.textTheme.bodyMedium!.fontSize!,
+                                      color: theme.colorScheme.onSurface,
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    if (error.value)
-                      TextButton(
-                          onPressed: () => close(), child: const Text('Ok'))
-                  ],
+                        ],
+                      ),
+                      if (error.value)
+                        TextButton(
+                            onPressed: () => close(), child: const Text('Ok'))
+                    ],
+                  ),
                 ),
               );
             }),
