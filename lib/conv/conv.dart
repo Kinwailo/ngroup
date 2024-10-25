@@ -9,13 +9,12 @@ extension Conv on String {
     for (int idx = 0; idx < length; idx++) {
       var from = this[idx];
       var to = from;
-      var list =
-          conv[from]?.sorted((a, b) => b.$1.length.compareTo(a.$1.length));
-      if (list != null) {
-        for (var item in list) {
+      if (conv[from] != null) {
+        for (var item in conv[from]!) {
           var end = idx + item.$1.length;
           if (end > length) continue;
           var sub = substring(idx, end);
+          if (sub == item.$2) break;
           if (sub == item.$1) {
             to = item.$2;
             idx += item.$1.length - 1;
@@ -41,7 +40,9 @@ class ConvTable {
         if (!_conv.containsKey(k)) {
           _conv[k] = [(zip[0], zip[1])];
         } else {
-          _conv[k]!.add((zip[0], zip[1]));
+          _conv[k]!
+            ..add((zip[0], zip[1]))
+            ..sort((a, b) => b.$1.length.compareTo(a.$1.length));
         }
       }
     }
@@ -148,7 +149,7 @@ class ConvTable {
       r'''𪾢,𬯎,𪣻,𢀖,𢀖,𬩽,𫶇,𪩘,𫖮,𫷷,𫸩,𬸦,𬶨,𬀪,𬀩,𬃊,𫚖,𬍡,𬉼,𬊤,𬊈,𬸚,𬸘,𬱟,𫭢,𫭟,𫮃,𫖳,𬷕,𬱖,𬸪,𬕂,𪟝,𫐄,𫐐,𫐓,𬨂,𬨎,𬪩,𬮱,𫔶,𫗴,𫗧,𬳵,𬳿,𬳽,𬳶,𫘦,𫘪,𫘝,'''
       r'''𫘬,𫘧,𫘜,𫘨,𬴃,𬴊,𬶐,𬶟,𬶋,𬶏,𬶮,𬶍,𫚕,𬶠,𬶭,𬸣,𬹼,𫠜,𬺈,𬺓,𬇕,𬇹,𬇙,𬍛,𫢸,𬍤,𬟽,𫌀,𬣙,𫍲,𫍣,𫍯,𬤇,𬤝,𬣡,𬤊,𫍽,𬣳,𬣞,𬭚,𬬭,𬭤,𫟹,𫓹,𬬻,𬬿,𫓯,𫓧,𬭎,𬬩,'''
       r'''𬭬,𬬱,𬬸,𬭁,𬬹,𫔍,𫔎,𬭸,𬭩,𫓶,𬭼,𬬮,𬮿,𬯀,𫑡,𬘯,𫟅,𬘘,𬘡,𬙊,𬘫,𬙂,𬘓,𫄨,𬘩,𫄷,𬘭,𫄸,𬙋,𬘬,𫇭,𬜬,𬟁,㤖,𨱇,鹮,𢫊,䓕,蝎,胄,慭,栏杆,电线杆,拉杆子,杆子头儿,冲压,凄惨,凄然,凄切,凄怆,'''
-      r'''凄恻,悲凄,哀凄,''';
+      r'''凄恻,悲凄,哀凄''';
 
   static const output =
       r'''專,業,叢,東,絲,丟,兩,嚴,喪,個,臨,麗,舉,義,烏,樂,喬,習,鄉,書,買,亂,爭,虧,亞,亙,畝,親,褻,嚲,億,僅,從,侖,倉,儀,們,優,會,傴,傘,偉,傳,俔,傷,倀,倫,傖,佇,僉,'''
