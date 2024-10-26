@@ -38,10 +38,14 @@ class SelectedGroupNotifier extends Notifier<int> {
     return Settings.group.val;
   }
 
-  void selectGroup(int id) async {
-    var group = await AppDatabase.get.getGroup(id);
-    id = group == null ? -1 : id;
-    state = id;
+  Future<void> selectGroup(int? id) async {
+    if (id != -1) {
+      var group = id == null
+          ? (await AppDatabase.get.groupList()).firstOrNull
+          : await AppDatabase.get.getGroup(id);
+      id = group?.id ?? -1;
+    }
+    state = id!;
     Settings.group.val = id;
   }
 }

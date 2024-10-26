@@ -5,12 +5,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../core/adaptive.dart';
 import '../group/group_controller.dart';
+import '../sync/cloud_settings_tile.dart';
+import '../sync/google_drive.dart';
 import 'prefs_tile.dart';
 import 'prefs_value.dart';
 import 'settings.dart';
-import 'widgets/prefs_shortcut_tile.dart';
 
-class SettingsView extends ConsumerWidget {
+class SettingsView extends HookConsumerWidget {
   const SettingsView({super.key});
 
   static var path = 'settings';
@@ -18,6 +19,7 @@ class SettingsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var colorScheme = Theme.of(context).colorScheme;
+    useListenable(GoogleDrive.i);
     return DefaultTabController(
       length: 5,
       child: Column(
@@ -109,8 +111,16 @@ class SettingsView extends ConsumerWidget {
                     ]),
                   ],
                 ),
-                const SettingsTabChild(
-                  children: [],
+                SettingsTabChild(
+                  children: [
+                    PrefsGroupTile(children: [
+                      const GoogleDriveSignInTile(),
+                      PrefsBoolTile(Settings.autoLoginCloud),
+                    ]),
+                    if (GoogleDrive.i.isLoggedIn) ...[
+                      const CloudGroupListTile(),
+                    ],
+                  ],
                 ),
                 SettingsTabChild(
                   children: [

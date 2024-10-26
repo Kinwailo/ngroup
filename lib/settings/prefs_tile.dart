@@ -6,3 +6,4 @@ export 'widgets/prefs_identities_tile.dart';
 export 'widgets/prefs_int_tile.dart';
 export 'widgets/prefs_patterns_tile.dart';
 export 'widgets/prefs_string_tile.dart';
+export 'widgets/prefs_shortcut_tile.dart';

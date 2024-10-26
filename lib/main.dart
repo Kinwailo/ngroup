@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:ngroup/sync/google_drive.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'core/adaptive.dart';
@@ -33,6 +34,10 @@ class MyApp extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    useEffect(() {
+      if (Settings.autoLoginCloud.val) GoogleDrive.i.signInSilently();
+      return null;
+    }, []);
     useListenable(Settings.theme);
     useListenable(Settings.customFrame);
     useValueChanged(

@@ -59,6 +59,11 @@ dependencies:
   html_unescape: ^2.0.0
   receive_sharing_intent: ^1.8.0
   web: ^1.1.0
+  google_sign_in: ^6.2.1
+  google_sign_in_dartio: ^0.3.0
+  google_sign_in_web: ^0.12.4+2
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+  googleapis: ^13.2.0
   
 dev_dependencies:
   flutter_test:

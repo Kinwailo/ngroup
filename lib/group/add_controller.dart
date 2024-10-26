@@ -13,6 +13,7 @@ import '../home/home_controller.dart';
 import '../nntp/nntp.dart';
 import '../nntp/nntp_service.dart';
 import '../post/thread_view.dart';
+import '../sync/cloud_controller.dart';
 import 'group_controller.dart';
 import 'group_options.dart';
 import 'options_view.dart';
@@ -36,6 +37,9 @@ class StepNotifier extends Notifier<int> {
   void Function()? onBack;
   void Function()? onFinish;
 
+  final sync = ValueNotifier(false);
+  final syncSelected = ValueNotifier(Map<String, DataEntry>.from({}));
+
   @override
   int build() {
     return 0;
@@ -51,6 +55,7 @@ class StepNotifier extends Notifier<int> {
 
   Function()? get onNext {
     var selection = ref.read(selectionProvider);
+    if (sync.value) return syncSelected.value.isEmpty ? null : nextStep;
     if (state == 2) {
       if (selection.hasValue && selection.requireValue.values.any((e) => e)) {
         return nextStep;
@@ -66,6 +71,7 @@ class StepNotifier extends Notifier<int> {
     var selection = ref.read(selectionProvider);
     var groups = ref.read(groupListProvider);
     var cancel = groups.hasValue && groups.requireValue.isNotEmpty;
+    if (sync.value) return cancelStep;
     if (state == 1) return selection.isLoading ? null : cancelStep;
     return state > 0 || cancel ? cancelStep : null;
   }
@@ -86,6 +92,10 @@ class StepNotifier extends Notifier<int> {
 
   void cancelStep() {
     ref.read(selectionProvider.notifier).reset();
+    if (sync.value) {
+      sync.value = false;
+      return;
+    }
     switch (state) {
       case 0:
         if (ref.read(selectedGroupProvider) != -1) _close();
@@ -101,6 +111,13 @@ class StepNotifier extends Notifier<int> {
   }
 
   Future<void> nextStep() async {
+    if (sync.value) {
+      await ref.read(cloudProvider).syncFromCloud(syncSelected.value);
+      await ref.read(selectedGroupProvider.notifier).selectGroup(null);
+      sync.value = false;
+      _close();
+      return;
+    }
     switch (state) {
       case 0:
         state++;
@@ -110,10 +127,10 @@ class StepNotifier extends Notifier<int> {
         if (!ref.read(selectionProvider).hasError) state++;
         break;
       case 2:
-        var group = await ref.read(selectionProvider.notifier).addGroups();
-        ref.read(selectedGroupProvider.notifier).selectGroup(group?.id! ?? -1);
-        _close();
+        await ref.read(selectionProvider.notifier).addGroups();
+        await ref.read(selectedGroupProvider.notifier).selectGroup(null);
         state = 0;
+        _close();
       default:
     }
   }
@@ -188,7 +205,7 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
     state = AsyncData(_selectionMap);
   }
 
-  Future<Group?> addGroups() async {
+  Future<void> addGroups() async {
     var list = state.requireValue.entries
         .where((e) => e.value)
         .map((e) {
@@ -202,7 +219,6 @@ class SelectionNotifier extends AsyncNotifier<Map<GroupInfo, bool>> {
         })
         .cast<Group>()
         .toList();
-    list = await _nntp!.addGroups(list);
-    return list.firstOrNull;
+    await _nntp!.addGroups(list);
   }
 }

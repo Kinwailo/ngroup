@@ -7,7 +7,11 @@ import '../core/adaptive.dart';
 import '../database/models.dart';
 import '../home/home_view.dart';
 import '../nntp/nntp_service.dart';
+import '../settings/prefs_tile.dart';
+import '../sync/cloud_settings_tile.dart';
+import '../sync/google_drive.dart';
 import 'add_controller.dart';
+import 'group_controller.dart';
 
 class AddPage extends StatelessWidget {
   const AddPage({super.key});
@@ -31,7 +35,7 @@ class AddPage extends StatelessWidget {
   }
 }
 
-class AddView extends ConsumerWidget {
+class AddView extends HookConsumerWidget {
   const AddView({super.key});
 
   static var path = 'add';
@@ -41,40 +45,46 @@ class AddView extends ConsumerWidget {
     var step = ref.watch(stepProvider);
     var stepController = ref.read(stepProvider.notifier);
     ref.watch(selectionProvider);
+    useListenable(stepController.sync);
+    useListenable(stepController.syncSelected);
 
     return AdaptivePageView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            height: 90,
-            child: PrimaryScrollController(
-              controller: ScrollController(),
-              child: Stepper(
-                type: StepperType.horizontal,
-                physics: const NeverScrollableScrollPhysics(),
-                currentStep: step,
-                controlsBuilder: (_, __) {
-                  return Container();
-                },
-                steps: ['Server', 'Connect', 'Subscribe']
-                    .asMap()
-                    .entries
-                    .map(
-                      (e) => Step(
-                        title: Text(e.value),
-                        content: Container(),
-                        isActive: stepController.isStepActive(e.key),
-                        state: stepController.stepState(e.key),
-                      ),
-                    )
-                    .toList(),
+          if (stepController.sync.value)
+            const SyncStep()
+          else ...[
+            SizedBox(
+              height: 90,
+              child: PrimaryScrollController(
+                controller: ScrollController(),
+                child: Stepper(
+                  type: StepperType.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  currentStep: step,
+                  controlsBuilder: (_, __) {
+                    return Container();
+                  },
+                  steps: ['Server', 'Connect', 'Subscribe']
+                      .asMap()
+                      .entries
+                      .map(
+                        (e) => Step(
+                          title: Text(e.value),
+                          content: Container(),
+                          isActive: stepController.isStepActive(e.key),
+                          state: stepController.stepState(e.key),
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: const [AddStep1(), AddStep2(), AddStep3()][step],
-          ),
+            Expanded(
+              child: const [AddStep1(), AddStep2(), AddStep3()][step],
+            ),
+          ],
           Container(
             margin: const EdgeInsets.only(top: 16, bottom: 16),
             child: Row(
@@ -97,6 +107,30 @@ class AddView extends ConsumerWidget {
           ),
           const SizedBox(height: 40),
         ],
+      ),
+    );
+  }
+}
+
+class SyncStep extends HookConsumerWidget {
+  const SyncStep({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    var stepController = ref.read(stepProvider.notifier);
+    useListenable(GoogleDrive.i);
+    return Expanded(
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            const PrefsGroupTile(children: [GoogleDriveSignInTile()]),
+            if (GoogleDrive.i.isLoggedIn)
+              GroupImportTile(
+                onSelected: (value) =>
+                    stepController.syncSelected.value = {...value},
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -236,6 +270,13 @@ class AddStep1 extends HookConsumerWidget {
             decoration: const InputDecoration(labelText: 'Charset'),
             controller: charset,
           ),
+          const SizedBox(height: 32),
+          if (ref.read(selectedGroupProvider) == -1)
+            OutlinedButton(
+              onPressed: () =>
+                  ref.read(stepProvider.notifier).sync.value = true,
+              child: const Text('Sync from cloud'),
+            ),
         ],
       ),
     );

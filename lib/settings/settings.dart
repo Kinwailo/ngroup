@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../database/database.dart';
 import '../database/models.dart';
 import '../post/post_controller.dart';
+import '../sync/google_drive.dart';
 import 'prefs_value.dart';
 
 class Identity {
@@ -43,7 +44,7 @@ class Settings {
   static var captureLeft = PrefsValue('captureLeft', 0.2, _storage);
   static var captureRight = PrefsValue('captureRight', 0.2, _storage);
 
-  static var replyTip = PrefsValue('replyTip', true, _storage);
+  static var auth = PrefsValue('auth', GoogleDrive.authDefault, _storage);
 
   static var theme = PrefsEnum(
     'theme',
@@ -66,6 +67,13 @@ class Settings {
     kIsWeb ? true : false,
     _storage,
     description: 'Use two pane layout',
+  );
+
+  static var autoLoginCloud = PrefsValue(
+    'autoLoginCloud',
+    false,
+    _storage,
+    description: 'Auto login',
   );
 
   static var disableWebContextMenu = PrefsValue(
