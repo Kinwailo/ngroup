@@ -433,12 +433,25 @@ class WriteController {
         if (Platform.isAndroid) pf = 'Android';
         if (Platform.isIOS) pf = 'IOS';
       }
+
+      var ref = StringBuffer();
+      var buffer = StringBuffer();
+      for (var r in references) {
+        if ((buffer.length + r.length) >= 100) {
+          buffer.write('\n ');
+          ref.write(buffer);
+          buffer.clear();
+        }
+        buffer.write('$r ');
+      }
+      ref.write(buffer);
+
       var builder = MessageBuilder(
           subjectEncoding: HeaderEncoding.B,
           transferEncoding: TransferEncoding.eightBit)
         ..from = [MailAddress(name.text, email.text)]
         ..addHeader('Newsgroups', group.name)
-        ..addHeader('References', references.join(' '))
+        ..addHeader('References', ref.toString().trim())
         ..addHeader('User-Agent', 'NGroup @$pf')
         ..subject = subject.text;
 
