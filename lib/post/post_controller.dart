@@ -75,6 +75,7 @@ class PostState {
   var isNew = false;
   var isRead = false;
   var showQuote = false;
+  var showSource = false;
   var inside = false;
   var reply = <PostData>[];
   var selectable = false;
@@ -84,6 +85,7 @@ class PostState {
 
 class PostBody {
   String text = '';
+  String source = '';
   String? html;
   var links = <PostLinkPreview>[];
   var images = <PostImage>[];
@@ -680,6 +682,7 @@ class PostsLoader {
   }
 
   void _getContent(PostData data, String text) {
+    var source = text;
     var mime = MimeMessage.parseFromText(text);
     var charset = data.options.charset.val;
 
@@ -774,6 +777,7 @@ class PostsLoader {
 
     data.body = PostBody()
       ..text = text
+      ..source = source
       ..html = html
       ..images = images
       ..files = files;

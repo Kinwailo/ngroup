@@ -282,7 +282,12 @@ List<Widget> _tileHeader(
     ),
     const Spacer(),
     Text.rich(
-      TextSpan(text: '#${data.index + 1}'),
+      TextSpan(
+        text: '#${data.index + 1}',
+        recognizer: TapGestureRecognizer()
+          ..onSecondaryTap =
+              () => data.state.showSource = !data.state.showSource,
+      ),
       textScaler: TextScaler.linear(Settings.contentScale.val / 100),
     ),
   ];
@@ -584,7 +589,7 @@ class PostBody extends HookConsumerWidget {
           ),
         )
       else if (body != null && _getBodyText(data).isNotEmpty)
-        PostBodyText(data, false),
+        state.showSource ? Text(body.source) : PostBodyText(data, false),
     ];
 
     var list = [
